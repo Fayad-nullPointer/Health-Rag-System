@@ -67,7 +67,7 @@ The `LanguagePredictor` loads the local scikit-learn pipeline (`.joblib` file). 
 from classifier.language_inference import LanguagePredictor
 
 # Initialize the predictor (point to the correct path of the joblib file)
-lang_model = LanguagePredictor(model_path="classifier/language_detection_pipeline.joblib")
+lang_model = LanguagePredictor(model_path="classifier/language_detection_pipeline_naive_bayes.joblib")
 
 text = "Je suis très heureux!"
 detected_language = lang_model.predict(text)
