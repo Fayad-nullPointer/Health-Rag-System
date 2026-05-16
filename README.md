@@ -89,7 +89,7 @@ python classifier/emotion_inference.py "I am so excited for this project!"
 **Language CLI:**
 ```bash
 # Ensure you specify the correct path to the joblib file if running from the root directory
-python classifier/language_inference.py "Hola, como estas?" --model_path classifier/language_detection_pipeline.joblib
+python classifier/language_inference.py "Hola, como estas?" --model_path classifier/language_detection_pipeline_naive_bayes.joblib
 ```
 
 ---
