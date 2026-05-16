@@ -1,17 +1,26 @@
 import argparse
 import joblib
 import sys
+import os
 
 
 class LanguagePredictor:
     def __init__(self, model_path="language_detection_pipeline.joblib"):
         """Initializes the language detection model pipeline."""
-        self.model_path = model_path
+        # Directory of THIS python file
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Absolute path to model
+        model_full_path = os.path.join(base_dir, model_path)
+
         try:
-            # Load the scikit-learn pipeline from the joblib file
-            self.pipeline = joblib.load(self.model_path)
+            self.pipeline = joblib.load(model_full_path)
+
         except Exception as e:
-            raise RuntimeError(f"Failed to load model from {self.model_path}: {e}")
+            raise RuntimeError(
+                f"Failed to load model from {model_full_path}: {e}"
+            )
+        
 
     def predict(self, text):
         """Predicts the language of the given text."""
@@ -30,7 +39,7 @@ def main():
         "text",
         type=str,
         nargs="?",
-        default="I am learning natural language processing.",
+        default="Hello",
         help="Text to detect language for",
     )
     parser.add_argument(
