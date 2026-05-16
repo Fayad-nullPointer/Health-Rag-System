@@ -1,36 +1,36 @@
 import argparse
 import joblib
 import sys
-import os
+from preprocessor import preprocess
+
+# --- Model Predictor ---
 
 
 class LanguagePredictor:
-    def __init__(self, model_path="language_detection_pipeline.joblib"):
+    def __init__(self, model_path="classifier/language_detection_pipeline_naive_bayes.joblib"):
         """Initializes the language detection model pipeline."""
-        # Directory of THIS python file
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-
-        # Absolute path to model
-        model_full_path = os.path.join(base_dir, model_path)
-
+        self.model_path = model_path
         try:
-            self.pipeline = joblib.load(model_full_path)
-
+            self.pipeline = joblib.load(self.model_path)
         except Exception as e:
-            raise RuntimeError(
-                f"Failed to load model from {model_full_path}: {e}"
-            )
-        
+            raise RuntimeError(f"Failed to load model from {self.model_path}: {e}")
 
     def predict(self, text):
         """Predicts the language of the given text."""
-        # Typically, scikit-learn models expect an iterable (like a list) for text input
+        # Ensure we always pass an iterable (list) to the pipeline
+        text = preprocess(text)
         if isinstance(text, str):
-            text = [text]
+            input_text = [text]
+        elif isinstance(text, list):
+            input_text = text
+        else:
+            raise ValueError("Input must be a string or a list of strings")
 
-        predictions = self.pipeline.predict(text)
-        # Return the first (and only) prediction if a single string was provided
-        return predictions[0]
+        predictions = self.pipeline.predict(input_text)
+
+        if isinstance(text, str):
+            return predictions[0]
+        return predictions
 
 
 def main():
@@ -39,13 +39,13 @@ def main():
         "text",
         type=str,
         nargs="?",
-        default="Hello",
+        default="I am learning natural language processing.",
         help="Text to detect language for",
     )
     parser.add_argument(
         "--model_path",
         type=str,
-        default="language_detection_pipeline.joblib",
+        default="classifier/language_detection_pipeline_naive_bayes.joblib",
         help="Path to the trained joblib model",
     )
 
@@ -60,7 +60,6 @@ def main():
 
     print(f'\nInput text: "{args.text}"')
     result = predictor.predict(args.text)
-
     print(f"Predicted Language: {result}")
 
 
