@@ -1,7 +1,7 @@
 import argparse
 import joblib
 import sys
-from preprocessor import preprocess
+from classifier.preprocessor import preprocess
 
 # --- Model Predictor ---
 
@@ -39,7 +39,7 @@ def main():
         "text",
         type=str,
         nargs="?",
-        default="I am learning natural language processing.",
+        default="How are you",
         help="Text to detect language for",
     )
     parser.add_argument(

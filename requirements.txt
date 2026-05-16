@@ -5,3 +5,4 @@ pandas
 cohere
 ipykernel
 google-genai
+groq
