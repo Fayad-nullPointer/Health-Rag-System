@@ -1,13 +1,18 @@
 import argparse
 import joblib
 import sys
-from preprocessor import preprocess
 
+try:
+    from . import preprocessor
+except ImportError:
+    import preprocessor
 # --- Model Predictor ---
 
 
 class LanguagePredictor:
-    def __init__(self, model_path="classifier/language_detection_pipeline_naive_bayes.joblib"):
+    def __init__(
+        self, model_path="classifier/language_detection_pipeline_naive_bayes.joblib"
+    ):
         """Initializes the language detection model pipeline."""
         self.model_path = model_path
         try:
@@ -18,11 +23,11 @@ class LanguagePredictor:
     def predict(self, text):
         """Predicts the language of the given text."""
         # Ensure we always pass an iterable (list) to the pipeline
-        text = preprocess(text)
         if isinstance(text, str):
+            text = preprocessor.preprocess(text)
             input_text = [text]
         elif isinstance(text, list):
-            input_text = text
+            input_text = [preprocessor.preprocess(t) for t in text]
         else:
             raise ValueError("Input must be a string or a list of strings")
 
