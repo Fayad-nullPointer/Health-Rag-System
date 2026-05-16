@@ -47,6 +47,7 @@ from classifier.emotion_inference import EmotionPredictor
 
 # Initialize the predictor (downloads/loads the Hugging Face model automatically)
 # Default model: "Fayad11/fine_tuned_emotion_inference_model"
+# You can also pass a local model path, e.g., model_path="emotion-bert-final"
 emotion_model = EmotionPredictor()
 
 text = "I am feeling absolutely wonderful today!"
