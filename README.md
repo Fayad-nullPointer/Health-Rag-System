@@ -131,6 +131,8 @@ Add your API key inside it:
 GROQ_API_KEY=your_groq_api_key_here
 ```
 
+---
+
 ### Step 3: Install dependencies for chatbot engine
 
 ```bash
@@ -139,7 +141,7 @@ pip install -r requirements.txt
 
 ---
 
-### How to Run the Main Chatbot**
+### How to Run the Main Chatbot
 The main entry point for the intent-based chatbot is:
 
 ```bash
@@ -147,6 +149,7 @@ python main.py
 ```
 
 **Example usage:**
+
 ```
 You: hello
 Bot: Hello 👋 How can I help you today?
