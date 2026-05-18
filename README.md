@@ -160,7 +160,6 @@ Bot: I'm here to listen. Would you like to talk more about what you're feeling?
 You: how to hack facebook
 Bot: I can't assist with that request.
 ```
-
 ---
 
 ## 📂 Notebooks
