@@ -15,8 +15,9 @@ def main():
         "goodbye",
         "gratitude",
         "asking_mental_health_question",
+        "out_of_scope",
         "unsafe_query",
-        "out_of_scope"
+        "self_harm_intent"
     ]
 
     engine = intent_classifier.IntentChatbotEngine(
@@ -32,7 +33,7 @@ def main():
         if msg.lower() in ["exit", "quit"]:
             break
 
-        print("Bot:", engine.chat(msg))
+        print("Bot:", engine.chat(msg, debug=True))
 
 
 if __name__ == "__main__":
