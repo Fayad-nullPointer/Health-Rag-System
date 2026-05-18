@@ -3,5 +3,6 @@
 "goodbye": "Cuide-se. Tenha um ótimo dia.",
 "gratitude": "De nada. Fico feliz em poder ajudar.",
 "asking_mental_health_question": "Estou aqui para te ouvir. Gostaria de falar mais sobre o que você está sentindo?",
-"out_of_scope": "Sou projetado principalmente para apoio à saúde mental, saudações e interações conversacionais básicas."
+"out_of_scope": "Sou projetado principalmente para apoio à saúde mental, saudações e interações conversacionais básicas.",
+"unsafe_query": "Não posso ajudar com esse pedido."
 }
