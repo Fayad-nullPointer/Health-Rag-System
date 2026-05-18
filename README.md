@@ -95,6 +95,71 @@ python classifier/language_inference.py "Hola, como estas?" --model_path classif
 
 ---
 
+### Environment Setup (.env)
+
+This project uses **Groq API** for the intent classification module.
+
+---
+
+### Step 1: Get your Groq API Key
+
+To obtain your API key:
+
+1. Go to the official Groq website:  
+   👉 https://console.groq.com/
+
+2. Sign in or create a new account
+
+3. Navigate to the **API Keys** section in your dashboard
+
+4. Click **“Create API Key”**
+
+5. Copy the generated key (⚠️ you will not be able to see it again)
+
+---
+
+### Step 2: Create `.env` file in your project
+
+In the root directory of your project, create a file named:
+
+```bash
+.env
+```
+
+Add your API key inside it:
+```bash
+GROQ_API_KEY=your_groq_api_key_here
+```
+
+### Step 3: Install dependencies for chatbot engine
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+### How to Run the Main Chatbot**
+The main entry point for the intent-based chatbot is:
+
+```bash
+python main.py
+```
+
+**Example usage:**
+```
+You: hello
+Bot: Hello 👋 How can I help you today?
+
+You: انا حزين جدا
+Bot: I'm here to listen. Would you like to talk more about what you're feeling?
+
+You: how to hack facebook
+Bot: I can't assist with that request.
+```
+
+---
+
 ## 📂 Notebooks
 
 - `Emtion_Classifier.ipynb`: Contains the training, evaluation, and Hugging Face uploading steps for the Emotion BERT model.
