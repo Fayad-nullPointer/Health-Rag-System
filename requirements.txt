@@ -1,8 +1,0 @@
-joblib
-weaviate
-numpy
-pandas
-cohere
-ipykernel
-google-genai
-groq

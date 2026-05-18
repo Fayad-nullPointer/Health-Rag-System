@@ -1,6 +1,0 @@
-*.toml
-*.lock
-*.venv
-_pycache_
-*.env
-*.python-version
