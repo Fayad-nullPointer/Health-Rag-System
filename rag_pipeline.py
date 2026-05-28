@@ -4,7 +4,7 @@
 from datasets import load_dataset, Dataset
 import pandas as pd
 
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, CrossEncoder
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct
 
@@ -12,7 +12,7 @@ from rank_bm25 import BM25Okapi
 
 
 # =========================================================
-# 📥 LOAD DATASET
+# LOAD DATASET
 # =========================================================
 ds = load_dataset("Amod/mental_health_counseling_conversations")
 df = ds["train"].to_pandas()
@@ -21,7 +21,7 @@ df = df.drop_duplicates(subset=["Context", "Response"]).dropna().reset_index(dro
 
 
 # =========================================================
-# 🧹 BUILD RAG DATASET (OPTIONAL EXPORT)
+# BUILD RAG DATASET (OPTIONAL EXPORT)
 # =========================================================
 documents = []
 
@@ -47,13 +47,13 @@ rag_dataset.save_to_disk("mental_health_rag_dataset")
 
 
 # =========================================================
-# 🤖 EMBEDDING MODEL
+# EMBEDDING MODEL
 # =========================================================
 model = SentenceTransformer("BAAI/bge-m3")
-
+reranker = CrossEncoder("BAAI/bge-reranker-v2-m3")
 
 # =========================================================
-# 🧠 EMBEDDINGS (CONTEXT ONLY)
+# EMBEDDINGS (CONTEXT ONLY)
 # =========================================================
 df["embedding_text"] = df["Context"]
 
@@ -64,14 +64,14 @@ embeddings = model.encode(
 
 
 # =========================================================
-# 🧠 BM25 INDEX
+# BM25 INDEX
 # =========================================================
 tokenized_corpus = [text.lower().split() for text in df["Context"]]
 bm25 = BM25Okapi(tokenized_corpus)
 
 
 # =========================================================
-# 🗄️ QDRANT SETUP
+# QDRANT SETUP
 # =========================================================
 client = QdrantClient(":memory:")  # replace with QdrantCloud/Docker in prod
 
@@ -87,7 +87,7 @@ client.recreate_collection(
 
 
 # =========================================================
-# 📤 INDEX DATA INTO QDRANT
+# INDEX DATA INTO QDRANT
 # =========================================================
 points = []
 
@@ -107,7 +107,7 @@ client.upsert(collection_name=collection_name, points=points)
 
 
 # =========================================================
-# 🔍 SEMANTIC SEARCH
+# SEMANTIC SEARCH
 # =========================================================
 def semantic_search(query, top_k=5):
     query_vec = model.encode(query).tolist()
@@ -123,7 +123,7 @@ def semantic_search(query, top_k=5):
 
 
 # =========================================================
-# 🔍 BM25 SEARCH
+# BM25 SEARCH
 # =========================================================
 def bm25_search(query, top_k=5):
     tokens = query.lower().split()
@@ -139,11 +139,11 @@ def bm25_search(query, top_k=5):
 
 
 # =========================================================
-# 🔥 HYBRID SEARCH (FINAL)
+# HYBRID SEARCH (FINAL)
 # =========================================================
-def hybrid_search(query, top_k=5):
-    sem_results = semantic_search(query, top_k=10)
-    bm25_results = bm25_search(query, top_k=10)
+def hybrid_search(query, top_k=10):
+    sem_results = semantic_search(query, top_k=20)
+    bm25_results = bm25_search(query, top_k=20)
 
     scores = {}
 
@@ -151,37 +151,86 @@ def hybrid_search(query, top_k=5):
     for rank, r in enumerate(sem_results):
         scores[r.id] = scores.get(r.id, 0) + (1 / (rank + 1))
 
-    # --- bm25 scoring ---
+    # --- BM25 scoring ---
     for rank, idx in enumerate(bm25_results):
         scores[idx] = scores.get(idx, 0) + (1 / (rank + 1))
 
-    # --- rank fusion ---
+    # --- fusion ranking ---
     ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
-    # return responses
-    return [
-        df.iloc[i]["Response"]
-        for i, _ in ranked[:top_k]
-    ]
+    candidates = []
+
+    for i, score in ranked[:top_k]:
+        candidates.append({
+            "id": i,
+            "context": df.iloc[i]["Context"],
+            "response": df.iloc[i]["Response"],
+            "hybrid_score": score
+        })
+
+    return candidates
 
 # =========================================================
-# 🔥 TEST EMBEDDINGS
+# RE-RANKER
+# =========================================================
+
+def rerank_results(query, candidates, top_k=5):
+
+    pairs = [
+        [query, candidate["context"]]
+        for candidate in candidates
+    ]
+
+    rerank_scores = reranker.predict(pairs)
+
+    for candidate, score in zip(candidates, rerank_scores):
+        candidate["rerank_score"] = float(score)
+
+    reranked = sorted(
+        candidates,
+        key=lambda x: x["rerank_score"],
+        reverse=True
+    )
+
+    return reranked[:top_k]
+
+# =========================================================
+# RETREIVAL PIPELINE
+# =========================================================
+
+def retrieve(query, top_k=5):
+
+    # hybrid retrieval
+    candidates = hybrid_search(query, top_k=20)
+
+    # reranking
+    reranked = rerank_results(query, candidates, top_k=top_k)
+
+    return reranked
+
+# =========================================================
+# TEST EMBEDDINGS
 # =========================================================
 
 def run_multilingual_test(queries, top_k=5):
+
     logs = []
 
     for q in queries:
-        retrieved = hybrid_search(q, top_k=top_k)
 
-        logs.append({
-            "query": q,
-            "top_1": retrieved[0] if len(retrieved) > 0 else None,
-            "top_2": retrieved[1] if len(retrieved) > 1 else None,
-            "top_3": retrieved[2] if len(retrieved) > 2 else None,
-            "top_4": retrieved[3] if len(retrieved) > 3 else None,
-            "top_5": retrieved[4] if len(retrieved) > 4 else None,
-        })
+        retrieved = retrieve(q, top_k=top_k)
+
+        row = {
+            "query": q
+        }
+
+        for i, item in enumerate(retrieved):
+
+            row[f"top_{i+1}_context"] = item["context"]
+            row[f"top_{i+1}_response"] = item["response"]
+            row[f"top_{i+1}_score"] = item["rerank_score"]
+
+        logs.append(row)
 
     return pd.DataFrame(logs)
 
@@ -216,7 +265,7 @@ if __name__ == "__main__":
 
     df_results = run_multilingual_test(test_queries)
 
-    df_results.to_csv("./mental_health_emb_tests/BGE_multilingual_rag_results.csv", index=False)
+    df_results.to_csv("./mental_health_emb_tests/BGE_RERANKED_results.csv", index=False)
 
     print(df_results)
 
