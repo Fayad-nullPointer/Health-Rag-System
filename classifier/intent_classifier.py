@@ -3,7 +3,6 @@ import os
 from functools import lru_cache
 from dotenv import load_dotenv
 from .utils import find_locales_path
-from .language_inference import LanguagePredictor
 
 
 class IntentChatbotEngine:
@@ -31,15 +30,25 @@ class IntentChatbotEngine:
         self.confidence_threshold = confidence_threshold
         self.locales_path = find_locales_path(os.path.dirname(__file__))
 
-        # language model
-        self.language_predictor = LanguagePredictor()
-
     # =====================================================
     # PROMPT BUILDER
     # =====================================================
-    def build_intent_classifier_prompt(self, user_message: str) -> str:
+    def build_intent_classifier_prompt(self, user_message: str, language: str) -> str:
         return f"""
 You are a secure intent classification engine.
+
+Detected User Language:
+{language}
+
+The user may speak in:
+- English
+- Arabic
+- Spanish
+- mixed-language text
+- etc..
+
+You MUST classify based on semantic meaning,
+regardless of language.
 
 Your task is to classify the user's message into EXACTLY ONE intent.
 
@@ -222,16 +231,29 @@ User: "{user_message}"
     # =====================================================
     # CLASSIFICATION PIPELINE
     # =====================================================
-    def classify_intent(self, user_message: str) -> dict:
+    def classify_intent(self, user_message: str, language: str = None) -> dict:
 
-        prompt = self.build_intent_classifier_prompt(user_message)
+        # ---------------------------------
+        # build prompt using language
+        # ---------------------------------
+        prompt = self.build_intent_classifier_prompt(
+            user_message=user_message,
+            language=language
+        )
 
+        # ---------------------------------
+        # call llm
+        # ---------------------------------
         llm_response = self.call_llm(prompt)
 
+        # ---------------------------------
+        # validate
+        # ---------------------------------
         validated = self.validate_intent_response(llm_response)
 
-        language = self.language_predictor.predict(user_message)
-
+        # ---------------------------------
+        # attach language
+        # ---------------------------------
         validated["language"] = language
 
         return validated

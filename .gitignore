@@ -1,8 +1,7 @@
-*.toml
-*.lock
 *.venv
 _pycache_
 *.env
 *.python-version
 mental_health_emb_tests/
 mental_health_rag_dataset/
+cache/

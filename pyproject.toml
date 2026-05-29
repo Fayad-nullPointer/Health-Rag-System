@@ -1,0 +1,22 @@
+[project]
+name = "health-rag-system"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "cohere>=6.1.0",
+    "datasets>=4.8.5",
+    "dotenv>=0.9.9",
+    "google-genai>=2.3.0",
+    "groq>=1.2.0",
+    "ipykernel>=7.2.0",
+    "joblib>=1.5.3",
+    "numpy>=2.4.4",
+    "pandas>=3.0.3",
+    "qdrant-client>=1.18.0",
+    "rank-bm25>=0.2.2",
+    "scikit-learn>=1.8.0",
+    "sentence-transformers>=5.5.1",
+    "weaviate>=0.1.2",
+]
