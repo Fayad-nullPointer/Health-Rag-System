@@ -1,56 +1,81 @@
-import argparse
+# import argparse
+# from transformers import pipeline
+# import sys
+
+
+# class EmotionPredictor:
+#     def __init__(self, model_path="Fayad11/fine_tuned_emotion_inference_model"):
+#         """Initializes the emotion classifier pipeline."""
+#         self.model_path = model_path
+#         try:
+#             self.classifier = pipeline(
+#                 "text-classification", model=self.model_path, tokenizer=self.model_path
+#             )
+#         except Exception as e:
+#             raise RuntimeError(f"Failed to load model from {self.model_path}: {e}")
+
+#     def predict(self, text):
+#         """Predicts the emotion of the given text."""
+#         return self.classifier(text)
+
+
+# def main():
+#     parser = argparse.ArgumentParser(description="Emotion Classifier Inference")
+#     parser.add_argument(
+#         "text",
+#         type=str,
+#         nargs="?",
+#         default="I can't believe how happy I am today!",
+#         help="Text to classify",
+#     )
+#     parser.add_argument(
+#         "--model_path",
+#         type=str,
+#         default="Fayad11/fine_tuned_emotion_inference_model",
+#         help="Path or Hugging Face repo ID to the trained model",
+#     )
+
+#     args = parser.parse_args()
+
+#     print(f"Loading model from: {args.model_path} ...")
+#     try:
+#         predictor = EmotionPredictor(model_path=args.model_path)
+#     except Exception as e:
+#         print(f"Error: {e}")
+#         sys.exit(1)
+
+#     print(f'\nInput text: "{args.text}"')
+#     result = predictor.predict(args.text)
+
+#     # Check output and display
+#     for r in result:
+#         print(f"Predicted Emotion: {r['label']} (Confidence Score: {r['score']:.4f})")
+
+
+# if __name__ == "__main__":
+#     main()
+
 from transformers import pipeline
-import sys
 
 
-class EmotionPredictor:
-    def __init__(self, model_path="Fayad11/fine_tuned_emotion_inference_model"):
-        """Initializes the emotion classifier pipeline."""
-        self.model_path = model_path
-        try:
-            self.classifier = pipeline(
-                "text-classification", model=self.model_path, tokenizer=self.model_path
-            )
-        except Exception as e:
-            raise RuntimeError(f"Failed to load model from {self.model_path}: {e}")
+class EmotionClassifier:
+
+    def __init__(
+        self,
+        model_path="Fayad11/fine_tuned_emotion_inference_model"
+    ):
+
+        self.classifier = pipeline(
+            task="text-classification",
+            model=model_path,
+            tokenizer=model_path
+        )
 
     def predict(self, text):
-        """Predicts the emotion of the given text."""
-        return self.classifier(text)
 
+        result = self.classifier(text)[0]
 
-def main():
-    parser = argparse.ArgumentParser(description="Emotion Classifier Inference")
-    parser.add_argument(
-        "text",
-        type=str,
-        nargs="?",
-        default="I can't believe how happy I am today!",
-        help="Text to classify",
-    )
-    parser.add_argument(
-        "--model_path",
-        type=str,
-        default="Fayad11/fine_tuned_emotion_inference_model",
-        help="Path or Hugging Face repo ID to the trained model",
-    )
-
-    args = parser.parse_args()
-
-    print(f"Loading model from: {args.model_path} ...")
-    try:
-        predictor = EmotionPredictor(model_path=args.model_path)
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
-
-    print(f'\nInput text: "{args.text}"')
-    result = predictor.predict(args.text)
-
-    # Check output and display
-    for r in result:
-        print(f"Predicted Emotion: {r['label']} (Confidence Score: {r['score']:.4f})")
-
-
-if __name__ == "__main__":
-    main()
+        return {
+            "emotion": result["label"],
+            "score": float(result["score"])
+        }
