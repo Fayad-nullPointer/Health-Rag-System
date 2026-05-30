@@ -1,0 +1,8 @@
+{
+"greeting": "Xin chào 👋 Hôm nay tôi có thể giúp bạn như thế nào?",
+"goodbye": "Bảo trọng nhé. Chúc bạn một ngày tốt lành.",
+"gratitude": "Không có gì. Tôi rất vui vì đã có thể giúp bạn.",
+"asking_mental_health_question": "Tôi ở đây để lắng nghe bạn. Bạn có muốn nói thêm về những gì bạn đang cảm thấy không?",
+"out_of_scope": "Tôi chủ yếu được thiết kế để hỗ trợ sức khỏe tinh thần, lời chào và các tương tác hội thoại cơ bản.",
+"unsafe_query": "Tôi không thể giúp với yêu cầu này."
+}

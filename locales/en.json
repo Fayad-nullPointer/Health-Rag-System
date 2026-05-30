@@ -1,0 +1,8 @@
+{
+    "greeting": "Hello 👋 How can I help you today?",
+    "goodbye": "Take care. Have a great day.",
+    "gratitude": "You're welcome. I'm glad I could help.",
+    "asking_mental_health_question": "I'm here to listen. Would you like to talk more about what you're feeling?",
+    "out_of_scope": "I'm designed mainly for mental health support, greetings, and basic conversational interactions.",
+    "unsafe_query": "I'm unable to help with that request."
+}
