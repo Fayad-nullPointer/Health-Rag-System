@@ -21,6 +21,7 @@ class IntentChatbotEngine:
         intents,
         model_name="llama-3.1-8b-instant",
         confidence_threshold=0.65,
+        language_predictor=None,
     ):
         load_dotenv()
 
@@ -31,8 +32,8 @@ class IntentChatbotEngine:
         self.confidence_threshold = confidence_threshold
         self.locales_path = find_locales_path(os.path.dirname(__file__))
 
-        # language model
-        self.language_predictor = LanguagePredictor()
+        # Reuse injected instance to avoid loading the ~35MB model twice
+        self.language_predictor = language_predictor or LanguagePredictor()
 
     # =====================================================
     # PROMPT BUILDER
@@ -222,7 +223,7 @@ User: "{user_message}"
     # =====================================================
     # CLASSIFICATION PIPELINE
     # =====================================================
-    def classify_intent(self, user_message: str) -> dict:
+    def classify_intent(self, user_message: str, language: str = None) -> dict:
 
         prompt = self.build_intent_classifier_prompt(user_message)
 
@@ -230,9 +231,8 @@ User: "{user_message}"
 
         validated = self.validate_intent_response(llm_response)
 
-        language = self.language_predictor.predict(user_message)
-
-        validated["language"] = language
+        # Use pre-detected language when available to avoid redundant prediction
+        validated["language"] = language or self.language_predictor.predict(user_message)
 
         return validated
 
