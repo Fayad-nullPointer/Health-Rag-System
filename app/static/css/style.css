@@ -1,0 +1,145 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    height:100vh;
+    background:#f5f7fb;
+    font-family:Arial,sans-serif;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.chat-container{
+    width:900px;
+    height:90vh;
+
+    background:white;
+    border-radius:20px;
+
+    display:flex;
+    flex-direction:column;
+
+    overflow:hidden;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.1);
+}
+
+.header{
+    padding:20px;
+    background:#4f46e5;
+    color:white;
+}
+
+/* =========================
+   CHAT BOX IMPROVEMENTS
+   ========================= */
+.chat-box{
+    flex:1;
+    overflow-y:auto;
+
+    padding:24px;            
+    display:flex;
+    flex-direction:column;
+    gap:12px;             
+
+    scroll-behavior:smooth;
+
+    background:#f9fafb;      
+}
+
+/* =========================
+   USER MESSAGE
+   ========================= */
+.user-message{
+    background:#4f46e5;
+    color:white;
+
+    padding:12px 14px;
+    border-radius:14px;
+
+    margin-left:auto;
+
+    width:fit-content;
+    max-width:70%;
+
+    line-height:1.4;
+
+    box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
+
+/* =========================
+   BOT MESSAGE
+   ========================= */
+.bot-message{
+    background:#eef2ff;
+    color:#111;
+
+    padding:12px 14px;
+    border-radius:14px;
+
+    width:fit-content;
+    max-width:70%;
+
+    line-height:1.4;
+
+    box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
+
+/* =========================
+   INPUT AREA
+   ========================= */
+.input-container{
+    display:flex;
+    gap:10px;
+
+    padding:20px;
+    border-top:1px solid #ddd;
+}
+
+.input-container input{
+    flex:1;
+    padding:14px;
+    border-radius:12px;
+    border:1px solid #ccc;
+    outline:none;
+}
+
+.input-container button{
+    padding:14px 24px;
+    border:none;
+    border-radius:12px;
+
+    background:#4f46e5;
+    color:white;
+
+    cursor:pointer;
+}
+
+/* =========================
+   TYPING INDICATOR
+   ========================= */
+.typing-indicator {
+    font-style: italic;
+    opacity: 0.7;
+}
+
+/* =========================
+   MARKDOWN FORMATTING FIXES
+   ========================= */
+.bot-message ul {
+    padding-left: 20px;
+    margin: 8px 0;
+}
+
+.bot-message li {
+    margin-bottom: 6px;
+}
+
+.bot-message p {
+    margin: 6px 0;
+}

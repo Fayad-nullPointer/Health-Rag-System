@@ -11,3 +11,4 @@ eval_results/
 responses.txt
 data/
 config/ 
+logs/
