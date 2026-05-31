@@ -2,8 +2,6 @@
 __pycache__
 *.env
 *.python-version
-mental_health_emb_tests/
-mental_health_rag_dataset/
 cache/
 rag_eval_env/
 .deepeval/
@@ -11,3 +9,5 @@ eval_env
 *.csv
 eval_results/
 responses.txt
+data/
+config/ 

@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 import os
 import numpy as np
 
-load_dotenv()
+load_dotenv(dotenv_path="config/.env")
 
 groq_client = Groq(
     api_key=os.getenv("GROQ_API_KEY")
@@ -54,7 +54,7 @@ documents_df = pd.DataFrame(documents)
 rag_dataset = Dataset.from_pandas(documents_df)
 
 # Optional save
-rag_dataset.save_to_disk("mental_health_rag_dataset")
+# rag_dataset.save_to_disk("mental_health_rag_dataset")
 
 
 # =========================================================

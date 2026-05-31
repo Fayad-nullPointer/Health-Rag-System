@@ -5,15 +5,15 @@ from groq import Groq
 import os
 from dotenv import load_dotenv
 
-from rag_pipeline import rag_pipeline
+from rag.rag_pipeline import rag_pipeline
 from classifier import emotion_inference, language_inference, intent_classifier
-from crisis_handler import handle_self_harm
+from rag.crisis_handler import handle_self_harm
 
 
 # =========================================================
 # INIT
 # =========================================================
-load_dotenv()
+load_dotenv(dotenv_path="config/.env")
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -102,7 +102,7 @@ while True:
             chat_history="",
             language=language,
             emotion=emotion,
-            return_metadata=True
+            return_metadata=False
         )
 
     else:
