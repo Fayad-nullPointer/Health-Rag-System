@@ -1,118 +1,29 @@
-# =========================================================
-# 📦 IMPORTS
-# =========================================================
-from groq import Groq
-import os
-from dotenv import load_dotenv
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 
-from rag.rag_pipeline import rag_pipeline
-from classifier import emotion_inference, language_inference, intent_classifier
-from rag.crisis_handler import handle_self_harm
+from app.api.chat import router as chat_router
 
+app = FastAPI(title="MindCare AI")
 
-# =========================================================
-# INIT
-# =========================================================
-load_dotenv(dotenv_path="config/.env")
-
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
-# language + emotion models (shared globally)
-language_model = language_inference.LanguagePredictor()
-emotion_model = emotion_inference.EmotionClassifier()
-
-# =========================================================
-# INTENT SETUP
-# =========================================================
-INTENTS = [
-    "greeting",
-    "goodbye",
-    "gratitude",
-    "asking_mental_health_question",
-    "out_of_scope",
-    "unsafe_query",
-    "self_harm_intent"
-]
-
-engine = intent_classifier.IntentChatbotEngine(
-    groq_client=client,
-    intents=INTENTS
+app.mount(
+    "/static",
+    StaticFiles(directory="app/static"),
+    name="static"
 )
 
-# =========================================================
-# ROUTING CONFIG
-# =========================================================
-RAG_INTENTS = {
-    "asking_mental_health_question",
-    "self_harm_intent"
-}
+templates = Jinja2Templates(
+    directory="app/templates"
+)
 
-LOCALIZED_INTENTS = {
-    "greeting",
-    "goodbye",
-    "gratitude",
-    "out_of_scope",
-    "unsafe_query"
-}
+app.include_router(chat_router)
 
-# =========================================================
-# MAIN LOOP
-# =========================================================
-print("🤖 Chatbot running (type exit)\n")
 
-while True:
-    msg = input("You: ")
+@app.get("/")
+def home(request: Request):
 
-    if msg.lower() in ["exit", "quit"]:
-        break
-
-    # ---------------------------------------------
-    # 1. SHARED PREPROCESSING (NO DUPLICATION)
-    # ---------------------------------------------
-    language = language_model.predict(msg)
-    language = str(language)
-
-    emotion_result = emotion_model.predict(msg)
-    emotion = emotion_result["emotion"]
-
-    # ---------------------------------------------
-    # 2. INTENT CLASSIFICATION
-    # ---------------------------------------------
-    intent_data = engine.classify_intent(
-        user_message=msg,
-        language=language   # IMPORTANT: injected, not recomputed
+    return templates.TemplateResponse(
+        request,
+        "chat.html",
+        {}
     )
-
-    intent_data = engine.apply_confidence_threshold(intent_data)
-
-    intent = intent_data["intent"]
-    print(intent)
-
-    # ---------------------------------------------
-    # 3. ROUTING LOGIC (CORE DECISION POINT)
-    # ---------------------------------------------
-    if intent == "self_harm_intent":
-
-        response = handle_self_harm(msg, language)
-    
-    elif intent == "asking_mental_health_question":
-
-        response = rag_pipeline(
-            query=msg,
-            chat_history="",
-            language=language,
-            emotion=emotion,
-            return_metadata=False
-        )
-
-    else:
-
-        response = engine.build_response(
-            intent=intent,
-            language=language
-        )
-
-    # ---------------------------------------------
-    # 4. OUTPUT
-    # ---------------------------------------------
-    print("\nBot:", response, "\n")
