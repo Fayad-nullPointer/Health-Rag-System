@@ -39,9 +39,9 @@ This project is an advanced, multimodal NLP pipeline designed to act as a compas
    ```
 
 3. **Install Dependencies:**
-   Ensure you install the necessary packages:
+   Install all necessary dependencies using the newly generated `requirements.txt`:
    ```bash
-   pip install fastapi uvicorn langchain langchain-groq langchain-qdrant qdrant-client sentence-transformers groq transformers joblib python-dotenv pydantic
+   pip install -r requirements.txt
    ```
 
 4. **Environment Variables:**
