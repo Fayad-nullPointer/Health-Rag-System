@@ -4,7 +4,7 @@ import os
 # allow import from project root
 sys.path.append(os.path.abspath(".."))
 
-from rag_pipeline import rag_pipeline
+from rag.rag_pipeline import rag_pipeline
 
 
 def run_rag(query: str):
