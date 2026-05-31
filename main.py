@@ -101,7 +101,8 @@ while True:
             query=msg,
             chat_history="",
             language=language,
-            emotion=emotion
+            emotion=emotion,
+            return_metadata=True
         )
 
     else:

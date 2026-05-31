@@ -5,3 +5,8 @@ _pycache_
 mental_health_emb_tests/
 mental_health_rag_dataset/
 cache/
+rag_eval_env/
+.deepeval/
+eval_env
+*.csv
+eval_results/

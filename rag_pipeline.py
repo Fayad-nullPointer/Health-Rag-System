@@ -7,6 +7,7 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer, CrossEncoder
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct
+from difflib import SequenceMatcher
 
 from rank_bm25 import BM25Okapi
 from groq import Groq
@@ -293,7 +294,7 @@ def run_multilingual_test(queries, top_k=5):
         for i, item in enumerate(retrieved):
 
             row[f"top_{i+1}_response"] = item["response"]
-            row[f"top_{i+1}_score"] = item["rerank_score"]
+            row[f"top_{i+1}_score"] = item["hybrid_score"]
 
         logs.append(row)
 
@@ -308,47 +309,102 @@ def build_prompt(
     retrieved_contexts,
     emotion,
     language,
-    chat_history=""
+    chat_history="",
+    retrieval_quality="HIGH"
 ):
-    
+
     system_prompt = """
-You are an expert Mental Health Counselor specialized in providing emotional support, psychological guidance, and evidence-based coping strategies.
+You are MindCare AI, a compassionate mental health support assistant.
 
-Your primary goal is to help the user improve their emotional and psychological well-being in a safe, supportive, and non-judgmental environment.
+Use retrieved counseling information as your primary source of guidance.
 
-You must:
-- Listen carefully to the user's concerns and emotional state.
-- Provide realistic, practical, and compassionate guidance.
-- Offer evidence-based coping techniques and exercises when appropriate, especially techniques commonly supported in psychological literature (such as grounding exercises, breathing exercises, journaling, CBT-style reframing, mindfulness, behavioral activation, or stress-management techniques).
-- Make the user feel emotionally safe, understood, and supported without judging them or minimizing their feelings.
-- Adapt your tone, empathy level, and response style according to the detected emotional state of the user.
-- Respond in the SAME language used by the user.
-- Use the detected emotion and retrieved counseling examples to generate a supportive and context-aware response.
-- Avoid giving harmful, dangerous, or medically unsafe advice.
-- If the user's message suggests severe emotional distress, self-harm, or suicidal ideation, prioritize emotional safety, encourage seeking support from trusted people or mental health professionals, and maintain a calm and supportive tone.
+Guidelines:
+- Respond in the same language as the user.
+- Be empathetic, supportive, and non-judgmental.
+- Use ONLY recommendations that appear in the retrieved examples.
+If no suitable recommendation exists:
+    - acknowledge the limitation
+    - provide emotional validation only
+    - ask for more context
+- Do not invent diagnoses, psychological explanations, or recommendations unsupported by the retrieved information.
+- If the retrieved information is incomplete, weakly related, or does not fully match the user's situation, explicitly acknowledge this limitation before providing guidance.
+- In such cases, avoid making assumptions and invite the user to share more details if they feel comfortable.
+- If the user expresses self-harm, suicidal thoughts, or immediate danger, prioritize safety and encourage professional or emergency support.
+- Keep responses concise and helpful.
 """
 
     context_text = "\n\n".join([
-        f"""
-Context {i+1}:
-User Problem:
+    f"""
+Retrieved Example {i+1}
+
+Situation:
 {item['context']}
 
-Therapist Response:
+Suggested Guidance:
 {item['response']}
 """
-        for i, item in enumerate(retrieved_contexts)
-    ])
+    for i, item in enumerate(retrieved_contexts)
+])
 
     user_prompt = f"""
-Detected Language:
+Language:
 {language}
 
-Detected Emotion:
+Detected Emotion (may be imperfect):
 {emotion}
 
-Relevant Counseling Context:
+Retrieval Quality:
+{retrieval_quality}
+
+Retrieved Counseling Examples:
 {context_text}
+
+Instructions:
+
+Grounding Rules:
+- Use the retrieved counseling examples as the primary source of guidance.
+- Identify which retrieved examples are most relevant.
+- Extract recommendations ONLY from the retrieved examples.
+- Do not introduce new coping techniques, exercises, journaling suggestions, communication strategies, psychological explanations, or therapeutic recommendations that do not appear in the retrieved examples.
+- Do not assume facts that are not explicitly stated by the user or the retrieved examples.
+
+Abstraction Permission (IMPORTANT):
+- You ARE allowed to extract general emotional or relational principles from retrieved examples
+  (e.g., trust, openness, emotional processing, giving time, not withdrawing from relationships).
+- These principles must NOT be turned into new step-by-step techniques.
+- Only use them as gentle framing for emotional support.
+
+Low-Confidence Retrieval:
+- If Retrieval Quality is LOW, or if the retrieved examples are weakly related to the user's situation:
+    * Explicitly acknowledge that the available guidance may not closely match the user's situation.
+    * Do NOT provide detailed or structured coping strategies.
+    * You MAY offer:
+        - emotional validation
+        - general supportive reflections based on retrieved principles
+    * Invite the user to share additional context if appropriate.
+
+High-Confidence Retrieval:
+- If Retrieval Quality is HIGH:
+    * Adapt the retrieved guidance more directly to the user's situation.
+    * You may include recommendations, but ONLY if they exist in retrieved examples.
+
+Empty Retrieval Handling (IMPORTANT):
+- If no retrieved counseling examples are available:
+    * Do NOT attempt to extract guidance from retrieval.
+    * Switch to safe general mental health support knowledge.
+    * Provide:
+        - emotional validation
+        - normalization of feelings
+        - 1–2 simple, non-clinical coping suggestions (e.g., breathing, talking to someone, journaling feelings)
+    * Avoid diagnosis or assumptions.
+    * Keep tone gentle and supportive.
+
+Response Style:
+- Be empathetic, supportive, and non-judgmental.
+- Respond in the same language as the user.
+- Keep the response concise and relevant.
+- Avoid repetition.
+- If additional information would help, invite the user to share more details.
 
 Conversation History:
 {chat_history}
@@ -356,7 +412,7 @@ Conversation History:
 User Message:
 {query}
 
-Generate a supportive, emotionally aware, and contextually relevant response.
+Generate a supportive, empathetic, grounded, and contextually relevant response.
 """
 
     return system_prompt, user_prompt
@@ -371,7 +427,8 @@ def generate_response(
     retrieved_contexts,
     emotion,
     language,
-    chat_history=""
+    chat_history="",
+    retrieval_quality="HIGH"
 ):
 
     system_prompt, user_prompt = build_prompt(
@@ -379,7 +436,8 @@ def generate_response(
         retrieved_contexts=retrieved_contexts,
         emotion=emotion,
         language=language,
-        chat_history=chat_history
+        chat_history=chat_history,
+        retrieval_quality=retrieval_quality
     )
 
     completion = groq_client.chat.completions.create(
@@ -394,11 +452,67 @@ def generate_response(
                 "content": user_prompt
             }
         ],
-        temperature=0.5,
-        max_tokens=700
+        temperature=0.3,
+        max_tokens=800
     )
 
     return completion.choices[0].message.content
+
+# =========================================================
+# DEDUPLICATION
+# =========================================================
+
+def deduplicate_contexts(retrieved_contexts):
+    seen = set()
+    unique_contexts = []
+
+    for item in retrieved_contexts:
+        key = (
+            item["context"].strip().lower(),
+            item["response"].strip().lower()
+        )
+
+        if key not in seen:
+            seen.add(key)
+            unique_contexts.append(item)
+
+    return unique_contexts
+
+def deduplicate_similar_contexts(contexts, threshold=0.90):
+    unique = []
+
+    for item in contexts:
+        is_duplicate = False
+
+        for existing in unique:
+            similarity = SequenceMatcher(
+                None,
+                item["context"],
+                existing["context"]
+            ).ratio()
+
+            if similarity >= threshold:
+                is_duplicate = True
+                break
+
+        if not is_duplicate:
+            unique.append(item)
+
+    return unique
+
+# =========================================================
+# RETRIEVAL FILTERING
+# =========================================================
+
+MIN_RERANK_SCORE = 0.18
+
+
+def filter_retrievals(retrieved_contexts):
+    return [
+        item
+        for item in retrieved_contexts
+        if item["rerank_score"] >= MIN_RERANK_SCORE
+    ]
 
 # =========================================================
 # RAG PIPELINE
@@ -407,9 +521,50 @@ def generate_response(
 def rag_pipeline(query, language=None, emotion=None, chat_history="", return_metadata=False):
 
     # -----------------------------
-    # retrieval + reranking
+    # retrieval
     # -----------------------------
-    retrieved_contexts = retrieve(query, top_k=5)
+    retrieved_contexts = retrieve(query, top_k=10)
+
+    # -----------------------------
+    # rerank filtering
+    # -----------------------------
+    retrieved_contexts = filter_retrievals(
+        retrieved_contexts
+    )
+
+    # -----------------------------
+    # exact deduplication
+    # -----------------------------
+    retrieved_contexts = deduplicate_contexts(
+        retrieved_contexts
+    )
+
+    # -----------------------------
+    # near-duplicate removal
+    # -----------------------------
+    retrieved_contexts = deduplicate_similar_contexts(
+        retrieved_contexts,
+        threshold=0.90
+    )
+
+    # -----------------------------
+    # keep top examples
+    # -----------------------------
+    retrieved_contexts = retrieved_contexts[:5]
+
+    # -----------------------------
+    # retrieval confidence
+    # -----------------------------
+    if retrieved_contexts:
+        top_score = retrieved_contexts[0]["rerank_score"]
+    else:
+        top_score = 0
+
+    retrieval_quality = (
+        "HIGH"
+        if top_score >= 0.30
+        else "LOW"
+    )
 
     # -----------------------------
     # generation
@@ -419,19 +574,20 @@ def rag_pipeline(query, language=None, emotion=None, chat_history="", return_met
         retrieved_contexts=retrieved_contexts,
         emotion=emotion,
         language=language,
-        chat_history=chat_history
+        chat_history=chat_history,
+        retrieval_quality=retrieval_quality
     )
 
     # -----------------------------
-    # optional debug metadata
+    # debug metadata
     # -----------------------------
     if return_metadata:
-
         return {
             "query": query,
             "language": language,
             "emotion": emotion,
             "retrieved_contexts": retrieved_contexts,
+            "retrieval_quality": retrieval_quality,
             "response": response
         }
 
