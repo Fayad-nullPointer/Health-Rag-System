@@ -15,6 +15,8 @@ from dotenv import load_dotenv
 import os
 import numpy as np
 
+from functools import lru_cache
+
 load_dotenv(dotenv_path="config/.env")
 
 groq_client = Groq(
@@ -304,16 +306,9 @@ def run_multilingual_test(queries, top_k=5):
 # BUILD PROMPT
 # =========================================================
 
-def build_prompt(
-    query,
-    retrieved_contexts,
-    emotion,
-    language,
-    chat_history="",
-    retrieval_quality="HIGH"
-):
-
-    system_prompt = """
+@lru_cache(maxsize=1)
+def get_system_prompt():
+    return """
 You are MindCare AI, a compassionate mental health support assistant.
 
 Use retrieved counseling information as your primary source of guidance.
@@ -333,34 +328,9 @@ If no suitable recommendation exists:
 - Keep responses concise and helpful.
 """
 
-    context_text = "\n\n".join([
-    f"""
-Retrieved Example {i+1}
-
-Situation:
-{item['context']}
-
-Suggested Guidance:
-{item['response']}
-"""
-    for i, item in enumerate(retrieved_contexts)
-])
-
-    user_prompt = f"""
-Language:
-{language}
-
-Detected Emotion (may be imperfect):
-{emotion}
-
-Retrieval Quality:
-{retrieval_quality}
-
-Retrieved Counseling Examples:
-{context_text}
-
-Instructions:
-
+@lru_cache(maxsize=1)
+def get_prompt_instructions():
+    return """
 Grounding Rules:
 - Use the retrieved counseling examples as the primary source of guidance.
 - Identify which retrieved examples are most relevant.
@@ -405,6 +375,48 @@ Response Style:
 - Keep the response concise and relevant.
 - Avoid repetition.
 - If additional information would help, invite the user to share more details.
+"""
+
+def build_prompt(
+    query,
+    retrieved_contexts,
+    emotion,
+    language,
+    chat_history="",
+    retrieval_quality="HIGH"
+):
+
+    system_prompt = get_system_prompt()
+    instructions = get_prompt_instructions()
+
+    context_text = "\n\n".join([
+    f"""
+Retrieved Example {i+1}
+
+Situation:
+{item['context']}
+
+Suggested Guidance:
+{item['response']}
+"""
+    for i, item in enumerate(retrieved_contexts)
+])
+
+    user_prompt = f"""
+Language:
+{language}
+
+Detected Emotion (may be imperfect):
+{emotion}
+
+Retrieval Quality:
+{retrieval_quality}
+
+Retrieved Counseling Examples:
+{context_text}
+
+Instructions:
+{instructions}
 
 Conversation History:
 {chat_history}
