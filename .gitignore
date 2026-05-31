@@ -1,5 +1,5 @@
 *.venv
-_pycache_
+__pycache__
 *.env
 *.python-version
 mental_health_emb_tests/
@@ -10,3 +10,4 @@ rag_eval_env/
 eval_env
 *.csv
 eval_results/
+responses.txt
