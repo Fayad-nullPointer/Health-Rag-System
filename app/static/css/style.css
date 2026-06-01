@@ -143,3 +143,43 @@ body{
 .bot-message p {
     margin: 6px 0;
 }
+
+/* =========================
+   AUTHENTICATION PAGES
+   ========================= */
+
+.auth-container {
+    width: 400px;
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.auth-container h2 {
+    margin-bottom: 20px;
+    color: #4f46e5;
+}
+
+.auth-container input {
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+}
+
+.auth-container button {
+    width: 100%;
+    padding: 12px;
+    background: #4f46e5;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.auth-link {
+    margin-top: 10px;
+    font-size: 14px;
+}

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MindCare AI</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<div class="home-container">
+
+    <h1>MindCare AI</h1>
+
+    <p id="welcome-message">
+        Your mental health support assistant
+    </p>
+
+    <div class="home-buttons" id="guest-buttons">
+        <a href="/login">Login</a>
+        <a href="/register">Register</a>
+    </div>
+
+    <div id="user-actions" style="display:none;">
+        <a href="/chat">Start Chat</a>
+
+        <button
+            onclick="logout()"
+            style="
+                margin-left:10px;
+                background:#ef4444;
+                color:white;
+                border:none;
+                padding:10px 16px;
+                border-radius:8px;
+                cursor:pointer;
+            "
+        >
+            Logout
+        </button>
+    </div>
+
+</div>
+
+<script src="/static/js/auth.js"></script>
+
+<script>
+    const user = getUser();
+
+    if (user) {
+
+        document.getElementById("welcome-message").textContent =
+            `Welcome back, ${user.username}!`;
+
+        document.getElementById("guest-buttons").style.display = "none";
+
+        document.getElementById("user-actions").style.display = "block";
+    }
+</script>
+
+</body>
+</html>

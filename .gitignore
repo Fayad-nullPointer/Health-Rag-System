@@ -1,7 +1,6 @@
 *.venv
 __pycache__
 *.env
-*.python-version
 cache/
 rag_eval_env/
 .deepeval/
@@ -12,3 +11,4 @@ responses.txt
 data/
 config/ 
 logs/
+*.db
