@@ -4,6 +4,10 @@ const sendBtn = document.getElementById("send-btn");
 
 let isLoading = false;
 
+if (!localStorage.getItem("user")) {
+    window.location.href = "/login";
+}
+
 sendBtn.addEventListener("click", sendMessage);
 
 input.addEventListener("keydown", (e) => {
