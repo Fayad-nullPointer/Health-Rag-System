@@ -33,12 +33,15 @@ class IntentChatbotEngine:
     # =====================================================
     # PROMPT BUILDER
     # =====================================================
-    def build_intent_classifier_prompt(self, user_message: str, language: str) -> str:
+    def build_intent_classifier_prompt(self, user_message: str, language: str, emotion: str) -> str:
         return f"""
 You are a secure intent classification engine.
 
 Detected User Language:
 {language}
+
+Detected User Emotion:
+{emotion}
 
 The user may speak in:
 - English
@@ -47,7 +50,7 @@ The user may speak in:
 - mixed-language text
 - etc..
 
-You MUST classify based on semantic meaning,
+You MUST classify based on semantic meaning and use the detected emotion only as supporting context,
 regardless of language.
 
 Your task is to classify the user's message into EXACTLY ONE intent.
@@ -240,14 +243,15 @@ User: "{user_message}"
     # =====================================================
     # CLASSIFICATION PIPELINE
     # =====================================================
-    def classify_intent(self, user_message: str, language: str = None) -> dict:
+    def classify_intent(self, user_message: str, language: str = None, emotion: str = None) -> dict:
 
         # ---------------------------------
         # build prompt using language
         # ---------------------------------
         prompt = self.build_intent_classifier_prompt(
             user_message=user_message,
-            language=language
+            language=language,
+            emotion=emotion
         )
 
         # ---------------------------------

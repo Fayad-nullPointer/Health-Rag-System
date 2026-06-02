@@ -102,7 +102,7 @@ engine = intent_classifier.IntentChatbotEngine(
 # =========================================================
 # MAIN SERVICE
 # =========================================================
-def process_message(message: str, chat_history: str = ""):
+def process_message(message: str, chat_history: str = "", user_name: str = None):
 
     trace_id = str(uuid.uuid4())
 
@@ -138,7 +138,8 @@ def process_message(message: str, chat_history: str = ""):
     # -----------------------------------------------------
     intent_data = engine.classify_intent(
         user_message=message,
-        language=language
+        language=language,
+        emotion=emotion
     )
 
     intent_data = engine.apply_confidence_threshold(intent_data)
@@ -164,11 +165,22 @@ def process_message(message: str, chat_history: str = ""):
 
         logger.info("Route: RAG Pipeline")
 
+        # add personalized customization to the prompt
+        if user_name:
+            personalized_prefix = f"""
+        The user's name is {user_name}.
+        Use it naturally in the conversation when appropriate (not in every sentence).
+        Be warm and personal.
+        """
+        else:
+            personalized_prefix = ""
+
         metadata = rag_pipeline(
             query=message,
             language=language,
             emotion=emotion,
             chat_history=chat_history,
+            system_context=personalized_prefix,
             return_metadata=True
         )
 

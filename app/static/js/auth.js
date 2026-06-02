@@ -5,10 +5,20 @@ async function register() {
     const password = document.getElementById("reg-password").value;
     const country = document.getElementById("reg-country").value;
 
+    const first_name = document.getElementById("reg-firstname").value;
+    const last_name = document.getElementById("reg-lastname").value;
+
     const res = await fetch("/auth/register", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ username, email, password, country })
+        body: JSON.stringify({
+            username,
+            email,
+            password,
+            country,
+            first_name,
+            last_name
+        })
     });
 
     const data = await res.json();
@@ -26,10 +36,6 @@ async function login() {
 
     const username = document.getElementById("login-username").value;
     const password = document.getElementById("login-password").value;
-    
-    // DEBUG
-    const token = localStorage.getItem("token");
-    console.log("TOKEN:", token);
 
     const res = await fetch("/auth/login", {
         method: "POST",
@@ -52,7 +58,8 @@ async function login() {
         localStorage.setItem(
             "user",
             JSON.stringify({
-                username: data.username
+                username: data.username,
+                full_name: data.full_name
             })
         );
 

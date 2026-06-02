@@ -22,10 +22,12 @@ def get_db():
 def register(user: UserCreate, db: Session = Depends(get_db)):
     new_user = create_user(
         db,
-        user.username,
-        user.email,
-        user.password,
-        user.country
+        username=user.username,
+        email=user.email,
+        password=user.password,
+        country=user.country,
+        first_name=user.first_name,
+        last_name=user.last_name
     )
 
     return {"message": "User created", "user_id": new_user.id}
@@ -45,7 +47,8 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     return {
         "access_token": token,
         "token_type": "bearer",
-        "username": db_user.username
+        "username": db_user.username,
+        "full_name": db_user.full_name
     }
 
 

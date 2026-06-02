@@ -375,6 +375,8 @@ Response Style:
 - Keep the response concise and relevant.
 - Avoid repetition.
 - If additional information would help, invite the user to share more details.
+- If the user's name is provided in context, use it naturally and sparingly to make the conversation feel personal.
+- Do not overuse the name.
 """
 
 def build_prompt(
@@ -383,6 +385,7 @@ def build_prompt(
     emotion,
     language,
     chat_history="",
+    system_context="",
     retrieval_quality="HIGH"
 ):
 
@@ -403,6 +406,8 @@ Suggested Guidance:
 ])
 
     user_prompt = f"""
+{system_context}
+
 Language:
 {language}
 
@@ -440,6 +445,7 @@ def generate_response(
     emotion,
     language,
     chat_history="",
+    system_context="",
     retrieval_quality="HIGH"
 ):
 
@@ -449,6 +455,7 @@ def generate_response(
         emotion=emotion,
         language=language,
         chat_history=chat_history,
+        system_context=system_context,
         retrieval_quality=retrieval_quality
     )
 
@@ -530,7 +537,7 @@ def filter_retrievals(retrieved_contexts):
 # RAG PIPELINE
 # =========================================================
 
-def rag_pipeline(query, language=None, emotion=None, chat_history="", return_metadata=False):
+def rag_pipeline(query, language=None, emotion=None, chat_history="", system_context="", return_metadata=False):
 
     # -----------------------------
     # retrieval
@@ -587,6 +594,7 @@ def rag_pipeline(query, language=None, emotion=None, chat_history="", return_met
         emotion=emotion,
         language=language,
         chat_history=chat_history,
+        system_context=system_context,
         retrieval_quality=retrieval_quality
     )
 

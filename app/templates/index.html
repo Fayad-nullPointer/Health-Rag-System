@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const greeting = document.getElementById("user-greeting");
 
     if (user) {
-        greeting.textContent = `Hi, ${user.username} 👋`;
+        greeting.textContent = `Hi, ${user.full_name} 👋`;
     }
 
     updateNavbar();
