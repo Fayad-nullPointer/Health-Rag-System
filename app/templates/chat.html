@@ -6,6 +6,26 @@
 </head>
 <body>
 
+<header class="navbar">
+    <div class="logo">🧠 MindCare AI</div>
+
+    <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/chat">Chat</a>
+    </nav>
+
+    <div class="auth-area">
+        <span id="user-greeting" style="margin-right:10px;color:#fff;"></span>
+
+        <a href="/login" id="login-link">Login</a>
+        <a href="/register" id="register-link">Register</a>
+
+        <button id="logout-btn" onclick="logout()" style="display:none;">
+            Logout
+        </button>
+    </div>
+</header>
+
 <div class="chat-container">
 
     <div class="header">
@@ -14,34 +34,35 @@
     </div>
 
     <div id="chat-box" class="chat-box">
-
         <div class="bot-message">
             Hello 👋 How are you feeling today?
         </div>
-
     </div>
 
     <div class="input-container">
-        <input
-            type="text"
-            id="message-input"
-            placeholder="Type your message..."
-        >
-
-        <button id="send-btn">
-            Send
-        </button>
+        <input type="text" id="message-input" placeholder="Type your message...">
+        <button id="send-btn">Send</button>
     </div>
-
-    <!-- <button onclick="logout()" style="float:right;background:white;color:#4f46e5;border:none;padding:8px 12px;border-radius:8px;">
-        Logout
-    </button> -->
 
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="/static/js/auth.js"></script>
 <script src="/static/js/chat.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const user = getUser();
+
+    const greeting = document.getElementById("user-greeting");
+
+    if (user) {
+        greeting.textContent = `Hi, ${user.username}`;
+    }
+
+    updateNavbar();
+});
+</script>
 
 </body>
 </html>

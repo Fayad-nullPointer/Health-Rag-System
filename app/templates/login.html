@@ -6,6 +6,26 @@
 </head>
 <body>
 
+    <header class="navbar">
+        <div class="logo">
+            🧠 MindCare AI
+        </div>
+
+        <nav class="nav-links">
+            <a href="/">Home</a>
+            <a href="/chat">Chat</a>
+        </nav>
+
+        <div class="auth-area" id="auth-area">
+            <a href="/login" id="login-link">Login</a>
+            <a href="/register" id="register-link">Register</a>
+
+            <button id="logout-btn" onclick="logout()" style="display:none;">
+                Logout
+            </button>
+        </div>
+    </header>
+
 <div class="auth-container">
 
     <h2>Login</h2>

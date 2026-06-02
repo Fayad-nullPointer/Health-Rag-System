@@ -85,3 +85,23 @@ async function logout() {
 
     window.location.href = "/";
 }
+
+function updateNavbar() {
+    const user = getUser();
+
+    const login = document.getElementById("login-link");
+    const register = document.getElementById("register-link");
+    const logoutBtn = document.getElementById("logout-btn");
+
+    if (user) {
+        if (login) login.style.display = "none";
+        if (register) register.style.display = "none";
+        if (logoutBtn) logoutBtn.style.display = "inline-block";
+    } else {
+        if (login) login.style.display = "inline-block";
+        if (register) register.style.display = "inline-block";
+        if (logoutBtn) logoutBtn.style.display = "none";
+    }
+}
+
+document.addEventListener("DOMContentLoaded", updateNavbar);
