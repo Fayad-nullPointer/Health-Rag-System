@@ -7,6 +7,8 @@ from app.core.database import SessionLocal
 from app.services.chatbot_service import process_message
 from app.core.security import get_current_user_id
 from app.services.chat_service import save_message, get_history
+from app.models.user import User
+
 
 router = APIRouter()
 
@@ -23,6 +25,10 @@ def get_db():
 
 @router.post("/chat")
 def chat(request: ChatRequest, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
+    # get current loggedin user
+    user = db.query(User).filter(User.id == user_id).first()
+    first_name = user.first_name
+
     # 1. save message per user
     save_message(db=db, 
                  user_id=user_id, 
@@ -43,7 +49,8 @@ def chat(request: ChatRequest, db: Session = Depends(get_db), user_id: int = Dep
     # 4. send message plus history to the rag
     result = process_message(
         request.message,
-        chat_history=history_text
+        chat_history=history_text,
+        user_name=first_name
     )
 
     # 5. save chatbot response

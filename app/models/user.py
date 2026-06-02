@@ -12,6 +12,9 @@ class User(Base):
 
     hashed_password = Column(String, nullable=False)
 
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=False)
+
     country = Column(String, nullable=False)
 
     messages = relationship(
@@ -19,3 +22,7 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
