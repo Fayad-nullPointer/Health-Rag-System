@@ -6,54 +6,50 @@
 </head>
 <body>
 
-<div class="home-container">
+<header class="navbar">
+    <div class="logo">🧠 MindCare AI</div>
 
-    <h1>MindCare AI</h1>
+    <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/chat">Chat</a>
+    </nav>
 
-    <p id="welcome-message">
-        Your mental health support assistant
-    </p>
+    <div class="auth-area">
+        <span id="user-greeting" style="margin-right:10px;color:#fff;"></span>
 
-    <div class="home-buttons" id="guest-buttons">
-        <a href="/login">Login</a>
-        <a href="/register">Register</a>
-    </div>
+        <a href="/login" id="login-link">Login</a>
+        <a href="/register" id="register-link">Register</a>
 
-    <div id="user-actions" style="display:none;">
-        <a href="/chat">Start Chat</a>
-
-        <button
-            onclick="logout()"
-            style="
-                margin-left:10px;
-                background:#ef4444;
-                color:white;
-                border:none;
-                padding:10px 16px;
-                border-radius:8px;
-                cursor:pointer;
-            "
-        >
+        <button id="logout-btn" onclick="logout()" style="display:none;">
             Logout
         </button>
     </div>
+</header>
 
+<div class="home-container">
+    <h1>MindCare AI</h1>
+
+    <p>Your AI mental health assistant</p>
+
+    <div class="home-buttons">
+        <a href="/chat">Start Chat</a>
+    </div>
 </div>
 
 <script src="/static/js/auth.js"></script>
 
 <script>
+document.addEventListener("DOMContentLoaded", () => {
     const user = getUser();
 
+    const greeting = document.getElementById("user-greeting");
+
     if (user) {
-
-        document.getElementById("welcome-message").textContent =
-            `Welcome back, ${user.username}!`;
-
-        document.getElementById("guest-buttons").style.display = "none";
-
-        document.getElementById("user-actions").style.display = "block";
+        greeting.textContent = `Hi, ${user.username} 👋`;
     }
+
+    updateNavbar();
+});
 </script>
 
 </body>
