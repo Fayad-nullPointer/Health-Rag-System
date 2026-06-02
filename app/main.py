@@ -8,6 +8,9 @@ from app.api.auth import router as auth_router
 
 from app.core.database import Base, engine
 
+from app.models.user import User
+from app.models.chat_message import ChatMessage
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="MindCare AI")

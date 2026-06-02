@@ -40,7 +40,9 @@ function removeTypingIndicator() {
 
 async function sendMessage() {
     const message = input.value.trim();
-    if (!message || isLoading) return; // 🚨 double safety
+    if (!message || isLoading) return;
+
+    const token = localStorage.getItem("token");
 
     addMessage(message, "user");
     input.value = "";
@@ -52,14 +54,24 @@ async function sendMessage() {
         const response = await fetch("/chat", {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
             },
             body: JSON.stringify({ message })
         });
 
         const data = await response.json();
 
+        console.log("Status:", response.status);
+        console.log("Response:", data);
+
         removeTypingIndicator();
+
+        if (!response.ok) {
+            addMessage(data.detail || "Authentication failed", "bot");
+            return;
+        }
+
         addMessage(data.response, "bot");
 
     } catch (err) {
@@ -72,6 +84,7 @@ async function sendMessage() {
 }
 
 function addMessage(text, sender) {
+
     const div = document.createElement("div");
 
     div.className =
@@ -80,10 +93,9 @@ function addMessage(text, sender) {
             : "bot-message";
 
     if (sender === "bot") {
-        // ✅ Convert markdown → HTML
-        div.innerHTML = marked.parse(text);
+        div.innerHTML = marked.parse(text || "");
     } else {
-        div.textContent = text;
+        div.textContent = text || "";
     }
 
     chatBox.appendChild(div);
