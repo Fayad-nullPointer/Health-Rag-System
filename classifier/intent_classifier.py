@@ -57,7 +57,16 @@ Possible intents:
 1. greeting
 Definition:
 The user is greeting, saying hello, starting a conversation,
+introducing themselves, or making a casual salutation.
 or making a casual salutation.
+
+Includes:
+- hello / hi / hey
+- good morning / good evening
+- "my name is ..."
+- "I am X"
+- "call me X"
+- starting small talk
 
 2. goodbye
 Definition:

@@ -26,6 +26,10 @@ async function login() {
 
     const username = document.getElementById("login-username").value;
     const password = document.getElementById("login-password").value;
+    
+    // DEBUG
+    const token = localStorage.getItem("token");
+    console.log("TOKEN:", token);
 
     const res = await fetch("/auth/login", {
         method: "POST",
@@ -39,6 +43,11 @@ async function login() {
     console.log("Response:", data);
 
     if (res.ok) {
+
+        localStorage.setItem(
+            "token",
+            data.access_token
+        );
 
         localStorage.setItem(
             "user",

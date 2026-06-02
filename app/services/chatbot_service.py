@@ -102,7 +102,7 @@ engine = intent_classifier.IntentChatbotEngine(
 # =========================================================
 # MAIN SERVICE
 # =========================================================
-def process_message(message: str):
+def process_message(message: str, chat_history: str = ""):
 
     trace_id = str(uuid.uuid4())
 
@@ -168,7 +168,7 @@ def process_message(message: str):
             query=message,
             language=language,
             emotion=emotion,
-            chat_history="",
+            chat_history=chat_history,
             return_metadata=True
         )
 
