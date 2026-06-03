@@ -73,11 +73,19 @@
             border-radius: 4px;
             display: inline-block;
         }
+        .transcription-label {
+            font-size: 0.75em;
+            color: #007bff;
+            margin-bottom: 4px;
+            font-style: italic;
+        }
         #input-container { 
             display: flex; 
             border-top: 1px solid #ddd; 
             padding: 15px; 
-            background: #fff; 
+            background: #fff;
+            align-items: center;
+            gap: 10px;
         }
         #user-input { 
             flex: 1; 
@@ -95,7 +103,6 @@
             color: white; 
             border: none; 
             padding: 10px 20px; 
-            margin-left: 10px; 
             border-radius: 25px; 
             cursor: pointer; 
             font-weight: bold; 
@@ -105,6 +112,42 @@
         #send-btn:hover { 
             background: #0056b3; 
         }
+
+        /* ── Mic button ────────────────────────────── */
+        #mic-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            background: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            flex-shrink: 0;
+        }
+        #mic-btn:hover {
+            border-color: #007bff;
+            background: #f0f7ff;
+        }
+        #mic-btn.recording {
+            border-color: #e74c3c;
+            background: #fdf0ef;
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+        #mic-btn.recording svg { fill: #e74c3c; }
+        #mic-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: #666;
+            transition: fill 0.2s;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+            50%       { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+        }
+
         #loading {
             align-self: flex-start;
             font-style: italic;
@@ -120,6 +163,13 @@
             <div class="message bot-msg">Hello! I am a mental health assistant. How are you feeling today?</div>
         </div>
         <div id="input-container">
+            <button id="mic-btn" onclick="toggleRecording()" title="Hold or click to record voice">
+                <!-- Microphone SVG icon -->
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+            </button>
             <input type="text" id="user-input" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
             <button id="send-btn" onclick="sendMessage()">Send</button>
         </div>
@@ -127,11 +177,25 @@
     <script>
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
+        const micBtn = document.getElementById('mic-btn');
 
-        function appendMessage(text, isUser, meta = null) {
+        // ── Shared helpers ──────────────────────────────────────────
+
+        function appendMessage(text, isUser, meta = null, transcription = null) {
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${isUser ? 'user-msg' : 'bot-msg'}`;
-            msgDiv.innerText = text;
+
+            // If this is a voice message, show the transcription label
+            if (transcription && isUser) {
+                const transLabel = document.createElement('div');
+                transLabel.className = 'transcription-label';
+                transLabel.innerText = '🎤 Voice message';
+                msgDiv.appendChild(transLabel);
+            }
+
+            const textNode = document.createElement('span');
+            textNode.innerText = text;
+            msgDiv.appendChild(textNode);
 
             if (meta && !isUser) {
                 const metaDiv = document.createElement('div');
@@ -144,23 +208,29 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        async function sendMessage() {
-            const text = userInput.value.trim();
-            if (!text) return;
-
-            // 1. Show User Message
-            appendMessage(text, true);
-            userInput.value = '';
-
-            // 2. Show Loading Indicator
+        function showLoading() {
             const loadingDiv = document.createElement('div');
             loadingDiv.id = 'loading';
             loadingDiv.innerText = 'Typing...';
             chatBox.appendChild(loadingDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function removeLoading() {
+            document.getElementById('loading')?.remove();
+        }
+
+        // ── Text chat ───────────────────────────────────────────────
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            appendMessage(text, true);
+            userInput.value = '';
+            showLoading();
 
             try {
-                // 3. Make API Call to /chat endpoint
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -168,9 +238,7 @@
                 });
                 
                 const data = await response.json();
-                
-                // 4. Remove Loading Indicator
-                document.getElementById('loading').remove();
+                removeLoading();
                 
                 if (response.ok) {
                     appendMessage(data.response, false, {
@@ -183,7 +251,7 @@
                     appendMessage("Error: " + (data.detail || JSON.stringify(data)), false);
                 }
             } catch (error) {
-                document.getElementById('loading')?.remove();
+                removeLoading();
                 appendMessage("Network error. Make sure the server is running.", false);
                 console.error(error);
             }
@@ -191,6 +259,121 @@
 
         function handleKeyPress(event) {
             if (event.key === 'Enter') sendMessage();
+        }
+
+        // ── Voice recording ─────────────────────────────────────────
+
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+
+        async function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                await startRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Prefer webm/opus, fall back to whatever the browser supports
+                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                    ? 'audio/webm;codecs=opus'
+                    : MediaRecorder.isTypeSupported('audio/webm')
+                        ? 'audio/webm'
+                        : '';
+
+                mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    // Stop all tracks to release the mic
+                    stream.getTracks().forEach(track => track.stop());
+
+                    const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                    
+                    if (audioBlob.size < 100) {
+                        appendMessage("Recording was too short. Please try again.", false);
+                        return;
+                    }
+
+                    await sendVoiceMessage(audioBlob);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                micBtn.classList.add('recording');
+                micBtn.title = 'Click to stop recording';
+
+            } catch (err) {
+                console.error('Microphone access error:', err);
+                appendMessage("⚠️ Microphone access denied. Please allow microphone access in your browser settings.", false);
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            isRecording = false;
+            micBtn.classList.remove('recording');
+            micBtn.title = 'Click to record voice';
+        }
+
+        async function sendVoiceMessage(audioBlob) {
+            appendMessage("🎤 (Voice message sent)", true, null, true);
+            showLoading();
+
+            // Update loading text for voice
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl) loadingEl.innerText = 'Transcribing & processing...';
+
+            try {
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.webm');
+
+                const response = await fetch('/chat/voice', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                removeLoading();
+
+                if (response.ok) {
+                    // Update the user message with the actual transcription
+                    const userMessages = chatBox.querySelectorAll('.user-msg');
+                    const lastUserMsg = userMessages[userMessages.length - 1];
+                    if (lastUserMsg) {
+                        const textSpan = lastUserMsg.querySelector('span');
+                        if (textSpan) {
+                            textSpan.innerText = data.transcribed_text;
+                        }
+                    }
+
+                    appendMessage(data.response, false, {
+                        detected_intent: data.detected_intent,
+                        detected_emotion: data.detected_emotion,
+                        detected_language: data.detected_language,
+                        source: data.source
+                    });
+                } else {
+                    appendMessage("Error: " + (data.detail || JSON.stringify(data)), false);
+                }
+            } catch (error) {
+                removeLoading();
+                appendMessage("Network error. Make sure the server is running.", false);
+                console.error(error);
+            }
         }
     </script>
 </body>
