@@ -1,0 +1,27 @@
+{
+  "greeting+asking_mental_health_question": {
+    "primary": "asking_mental_health_question",
+    "routing": "rag",
+    "response_style": "acknowledge_greeting_first"
+  },
+  "gratitude+asking_mental_health_question": {
+    "primary": "asking_mental_health_question",
+    "routing": "rag",
+    "response_style": "acknowledge_gratitude_then_continue"
+  },
+  "goodbye+asking_mental_health_question": {
+    "primary": "asking_mental_health_question",
+    "routing": "rag",
+    "response_style": "ignore_goodbye_address_distress"
+  },
+  "greeting+gratitude": {
+    "primary": "greeting",
+    "routing": "direct",
+    "response_style": "warm_acknowledgment"
+  },
+  "out_of_scope+asking_mental_health_question": {
+    "primary": "asking_mental_health_question",
+    "routing": "rag",
+    "response_style": "acknowledge_offtopic_engage_mh"
+  }
+}

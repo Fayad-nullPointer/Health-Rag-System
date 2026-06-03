@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Serenity — Your Space</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+<link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <a href="/" class="sidebar-logo">
+      <div class="logo-mark">🌿</div>
+      <span class="logo-name">Serenity</span>
+    </a>
+    <button class="new-chat-btn" id="newChatBtn">
+      <span>+</span> New conversation
+    </button>
+  </div>
+
+  <div class="user-info">
+    <div class="user-name" id="sidebarUserName">—</div>
+    <div class="user-country" id="sidebarCountry">—</div>
+  </div>
+
+  <div class="sidebar-label">Recent sessions</div>
+  <div class="sessions-list" id="sessionsList"></div>
+
+  <div class="sidebar-footer">
+    <button class="logout-btn" id="logoutBtn">
+      <span>↩</span> Sign out
+    </button>
+  </div>
+</aside>
+
+<main class="chat-main">
+  <div class="chat-header">
+    <div style="display:flex; align-items:center; gap:1rem;">
+      <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+      <div class="chat-status">
+        <div class="status-dot"></div>
+        <span class="status-text">Serenity is present</span>
+      </div>
+    </div>
+    <div class="session-info-header" id="sessionInfoHeader"></div>
+  </div>
+
+  <div class="crisis-banner" id="crisisBanner">
+    <div class="crisis-banner-icon">💙</div>
+    <div class="crisis-banner-text">
+      <strong>You are not alone immediate support is available</strong>
+      <span id="crisisHotlineText"></span>
+    </div>
+    <button class="crisis-close" id="crisisClose">✕</button>
+  </div>
+
+  <div class="messages-area" id="messagesArea">
+    <div class="welcome-state" id="welcomeState">
+      <div class="welcome-ring">
+        <div class="welcome-icon">🌿</div>
+      </div>
+      <h2 class="welcome-title" id="welcomeTitle">Hello</h2>
+      <p class="welcome-sub">
+        This is your private space. Share whatever is on your mind 
+        there are no right or wrong things to say here.
+      </p>
+      <div class="starter-prompts">
+        <button class="starter-btn" onclick="useStarter(this)">I've been feeling anxious lately</button>
+        <button class="starter-btn" onclick="useStarter(this)">I can't sleep and my mind won't stop</button>
+        <button class="starter-btn" onclick="useStarter(this)">I feel like nobody understands me</button>
+        <button class="starter-btn" onclick="useStarter(this)">I just need someone to talk to</button>
+        <button class="starter-btn" onclick="useStarter(this)">What is CBT and how does it help?</button>
+        <button class="starter-btn" onclick="useStarter(this)">I've been feeling very low recently</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-wrapper">
+      <textarea id="messageInput" placeholder="Share what's on your mind…" rows="1" maxlength="2000"></textarea>
+      <button class="send-btn" id="sendBtn" title="Send message">↑</button>
+    </div>
+    <div class="input-hint">Press Enter to send · Shift+Enter for new line</div>
+  </div>
+</main>
+
+<script src="/assets/js/chat.js"></script>
+</body>
+</html>
