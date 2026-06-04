@@ -12,3 +12,4 @@ data/
 config/ 
 logs/
 *.db
+language_detector.joblib
