@@ -1,6 +1,4 @@
-language_detector.joblib
 .env
-*.joblib
 *.pt
 __pycache__/
 *.pyc
