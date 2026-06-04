@@ -1,4 +1,3 @@
-language_detector.joblib
 .env
 *.joblib
 *.pt
@@ -7,3 +6,5 @@ __pycache__/
 .ipynb_checkpoints/
 mental_health.db
 embedding_cache.json
+*.joblib
+module_1_language_detection/language_detector.joblib
