@@ -1,0 +1,9 @@
+language_detector.joblib
+.env
+*.joblib
+*.pt
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+mental_health.db
+embedding_cache.json

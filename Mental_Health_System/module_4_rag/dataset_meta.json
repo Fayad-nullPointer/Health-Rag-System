@@ -1,0 +1,256 @@
+{
+  "n_documents": 938,
+  "columns": [
+    "doc_id",
+    "Context",
+    "Response",
+    "document_text",
+    "topics",
+    "risk_level",
+    "quality_score",
+    "has_empathy",
+    "has_actionable",
+    "context_len",
+    "response_len",
+    "document_len",
+    "context_words",
+    "response_words"
+  ],
+  "risk_levels": [
+    "crisis",
+    "high",
+    "medium",
+    "low"
+  ],
+  "topic_keywords": {
+    "anxiety": [
+      "anxiety",
+      "anxious",
+      "panic",
+      "panic attack",
+      "worry",
+      "worried",
+      "nervou",
+      "dread",
+      "apprehens"
+    ],
+    "depression": [
+      "depress",
+      "hopeless",
+      "worthless",
+      "empty inside",
+      "numb",
+      "meaningless",
+      "no motivation",
+      "can not get up"
+    ],
+    "trauma_ptsd": [
+      "trauma",
+      "ptsd",
+      "abuse",
+      "assault",
+      "flashback",
+      "nightmare",
+      "sexual abuse",
+      "domestic"
+    ],
+    "relationships": [
+      "relationship",
+      "marriage",
+      "partner",
+      "divorce",
+      "breakup",
+      "spouse",
+      "boyfriend",
+      "girlfriend",
+      "husband",
+      "wife",
+      "family conflict"
+    ],
+    "self_harm": [
+      "self-harm",
+      "self harm",
+      "cutting",
+      "hurt myself",
+      "injure myself",
+      "burn myself"
+    ],
+    "suicidal": [
+      "suicid",
+      "kill myself",
+      "end my life",
+      "want to die",
+      "not want to live",
+      "better off dead",
+      "goodbye forever"
+    ],
+    "sleep": [
+      "sleep",
+      "insomnia",
+      "nightmares",
+      "cant sleep",
+      "tired",
+      "exhausted",
+      "fatigue"
+    ],
+    "anger": [
+      "anger",
+      "angry",
+      "rage",
+      "furious",
+      "frustrat",
+      "irritab",
+      "explosive",
+      "outburst"
+    ],
+    "grief_loss": [
+      "grief",
+      "griev",
+      "loss",
+      "lost someone",
+      "death",
+      "died",
+      "mourning",
+      "bereavement"
+    ],
+    "self_esteem": [
+      "self-esteem",
+      "self esteem",
+      "confidence",
+      "worthless",
+      "ugly",
+      "hate myself",
+      "not good enough",
+      "failure"
+    ],
+    "stress": [
+      "stress",
+      "overwhelm",
+      "burnout",
+      "pressure",
+      "overwork",
+      "too much",
+      "cant cope"
+    ],
+    "addiction": [
+      "addict",
+      "alcohol",
+      "drinking",
+      "drug",
+      "substance",
+      "porn",
+      "gambling",
+      "dependenc"
+    ],
+    "eating_disorder": [
+      "eating disorder",
+      "anorexia",
+      "bulimia",
+      "binge",
+      "purge",
+      "restrict eating",
+      "body image"
+    ],
+    "loneliness": [
+      "lonely",
+      "loneliness",
+      "isolated",
+      "no one cares",
+      "no friends",
+      "nobody understands",
+      "alone"
+    ]
+  },
+  "crisis_signals": [
+    "kill myself",
+    "want to die",
+    "end my life",
+    "suicid",
+    "not want to live",
+    "better off dead",
+    "goodbye forever",
+    "no reason to live",
+    "rather be dead",
+    "take my own life",
+    "planning to end",
+    "method to kill"
+  ],
+  "high_risk_signals": [
+    "self-harm",
+    "self harm",
+    "cutting myself",
+    "hurt myself",
+    "completely hopeless",
+    "worthless",
+    "severe depression",
+    "cannot go on",
+    "can't go on",
+    "abuse",
+    "assault",
+    "trauma",
+    "ptsd",
+    "flashback",
+    "nobody cares",
+    "no reason",
+    "nothing matters",
+    "feel like dying"
+  ],
+  "empathy_signals": [
+    "i understand",
+    "i hear you",
+    "i can imagine",
+    "that must be",
+    "i am sorry",
+    "i'm sorry",
+    "it sounds like",
+    "it makes sense",
+    "you are not alone",
+    "you're not alone",
+    "thank you for sharing",
+    "that takes courage",
+    "i want you to know",
+    "it is okay to feel",
+    "your feelings are",
+    "i can see",
+    "that is really hard"
+  ],
+  "actionable_signals": [
+    "i would suggest",
+    "i recommend",
+    "one thing you can",
+    "try to",
+    "consider",
+    "it may help",
+    "it can help",
+    "a therapist",
+    "counseling",
+    "therapy",
+    "speaking with",
+    "reach out",
+    "you might want to",
+    "one step",
+    "a helpful approach",
+    "breathing",
+    "journaling",
+    "mindfulness",
+    "grounding"
+  ],
+  "quality_score_logic": {
+    "0": "no empathy, no actionable advice, short response",
+    "1": "one signal present",
+    "2": "two signals present",
+    "3": "all three signals present \u2014 highest quality"
+  },
+  "risk_distribution": {
+    "low": 535,
+    "medium": 314,
+    "high": 69,
+    "crisis": 20
+  },
+  "quality_distribution": {
+    "2": 449,
+    "1": 271,
+    "3": 215,
+    "0": 3
+  }
+}

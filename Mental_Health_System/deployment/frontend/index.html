@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Serenity — Mental Health Support</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --night:    #0d0f14;
+    --ink:      #141720;
+    --card:     #181c25;
+    --border:   rgba(255,255,255,0.07);
+    --sage:     #7db89a;
+    --sage-dim: #4e8a6e;
+    --blush:    #c9a98a;
+    --text:     #e8e4dc;
+    --muted:    #7a7870;
+    --glow:     rgba(125,184,154,0.15);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--night);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    overflow-x: hidden;
+    line-height: 1.7;
+  }
+
+  /* ── Noise texture overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.4rem 3rem;
+    background: rgba(13,15,20,0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    text-decoration: none;
+  }
+
+  .logo-mark {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--sage), var(--blush));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+  }
+
+  .logo-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: color 0.3s;
+  }
+
+  .nav-links a:hover { color: var(--text); }
+
+  .btn-nav {
+    background: var(--sage);
+    color: var(--night) !important;
+    padding: 0.5rem 1.4rem;
+    border-radius: 100px;
+    font-weight: 500 !important;
+    transition: background 0.3s, transform 0.2s !important;
+  }
+
+  .btn-nav:hover {
+    background: var(--sage-dim) !important;
+    transform: translateY(-1px);
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 8rem 2rem 4rem;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  /* Ambient orbs */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.18;
+    pointer-events: none;
+  }
+
+  .orb-1 {
+    width: 600px; height: 600px;
+    background: var(--sage);
+    top: -150px; left: -100px;
+    animation: drift1 18s ease-in-out infinite;
+  }
+
+  .orb-2 {
+    width: 400px; height: 400px;
+    background: var(--blush);
+    bottom: -100px; right: -80px;
+    animation: drift2 22s ease-in-out infinite;
+  }
+
+  .orb-3 {
+    width: 300px; height: 300px;
+    background: #8ba0c9;
+    top: 40%; left: 60%;
+    animation: drift1 28s ease-in-out infinite reverse;
+  }
+
+  @keyframes drift1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%       { transform: translate(40px, -30px) scale(1.05); }
+    66%       { transform: translate(-20px, 40px) scale(0.97); }
+  }
+
+  @keyframes drift2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%       { transform: translate(-50px, 30px) scale(1.08); }
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 820px;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(125,184,154,0.1);
+    border: 1px solid rgba(125,184,154,0.25);
+    color: var(--sage);
+    padding: 0.4rem 1.1rem;
+    border-radius: 100px;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 2.5rem;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--sage);
+    border-radius: 50%;
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(3rem, 8vw, 6.5rem);
+    font-weight: 300;
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.8rem;
+    animation: fadeUp 0.8s ease 0.1s both;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--sage);
+  }
+
+  .hero-sub {
+    font-size: 1.1rem;
+    color: var(--muted);
+    max-width: 520px;
+    margin: 0 auto 3rem;
+    animation: fadeUp 0.8s ease 0.2s both;
+  }
+
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    animation: fadeUp 0.8s ease 0.3s both;
+  }
+
+  .btn-primary {
+    background: var(--sage);
+    color: var(--night);
+    padding: 0.85rem 2.2rem;
+    border-radius: 100px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-primary:hover {
+    background: var(--sage-dim);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(125,184,154,0.3);
+  }
+
+  .btn-secondary {
+    color: var(--text);
+    padding: 0.85rem 2rem;
+    border-radius: 100px;
+    text-decoration: none;
+    font-size: 0.95rem;
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--sage);
+    color: var(--sage);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── BREATHING VISUAL ── */
+  .breathing-container {
+    margin: 5rem auto 0;
+    display: flex;
+    justify-content: center;
+    animation: fadeUp 1s ease 0.5s both;
+  }
+
+  .breathing-ring {
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    border: 1px solid rgba(125,184,154,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    animation: breathe 5s ease-in-out infinite;
+  }
+
+  .breathing-ring::before, .breathing-ring::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(125,184,154,0.1);
+    animation: breathe 5s ease-in-out infinite;
+  }
+
+  .breathing-ring::before {
+    width: 160%; height: 160%;
+    animation-delay: -1s;
+  }
+
+  .breathing-ring::after {
+    width: 220%; height: 220%;
+    animation-delay: -2s;
+  }
+
+  .breathing-core {
+    width: 80px; height: 80px;
+    background: radial-gradient(circle, rgba(125,184,154,0.3), rgba(125,184,154,0.05));
+    border-radius: 50%;
+    animation: breathe 5s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50%       { transform: scale(1.15); opacity: 1; }
+  }
+
+  /* ── SECTION BASE ── */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 7rem 2rem;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 300;
+    line-height: 1.15;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-sub {
+    color: var(--muted);
+    max-width: 500px;
+    font-size: 1rem;
+  }
+
+  /* ── HOW IT WORKS ── */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 2rem;
+    margin-top: 4rem;
+  }
+
+  .step-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .step-card:hover {
+    border-color: rgba(125,184,154,0.3);
+    transform: translateY(-4px);
+  }
+
+  .step-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--glow), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .step-card:hover::before { opacity: 1; }
+
+  .step-number {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 3.5rem;
+    font-weight: 300;
+    color: rgba(125,184,154,0.15);
+    line-height: 1;
+    margin-bottom: 1.2rem;
+  }
+
+  .step-icon {
+    font-size: 1.6rem;
+    margin-bottom: 1rem;
+  }
+
+  .step-title {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.6rem;
+    color: var(--text);
+  }
+
+  .step-desc {
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* ── FEATURES ── */
+  .features {
+    background: var(--ink);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 4rem;
+  }
+
+  .feature-item {
+    padding: 2rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    transition: border-color 0.3s;
+  }
+
+  .feature-item:hover {
+    border-color: rgba(125,184,154,0.25);
+  }
+
+  .feature-dot {
+    width: 8px; height: 8px;
+    background: var(--sage);
+    border-radius: 50%;
+    margin-bottom: 1.2rem;
+  }
+
+  .feature-title {
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
+  .feature-desc {
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* ── CTA ── */
+  .cta-section {
+    text-align: center;
+    padding: 8rem 2rem;
+  }
+
+  .cta-card {
+    max-width: 680px;
+    margin: 0 auto;
+    background: var(--card);
+    border: 1px solid rgba(125,184,154,0.2);
+    border-radius: 24px;
+    padding: 5rem 3rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center top, rgba(125,184,154,0.08), transparent 60%);
+    pointer-events: none;
+  }
+
+  .cta-card .section-title { margin-bottom: 1rem; }
+
+  .cta-card p {
+    color: var(--muted);
+    margin-bottom: 2.5rem;
+    font-size: 1rem;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2.5rem 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  footer p {
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .footer-links a {
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  .footer-links a:hover { color: var(--text); }
+
+  /* ── SCROLL REVEAL ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-mark">🌿</div>
+    <span class="logo-name">Serenity</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#how-it-works">How it works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="/login">Sign in</a></li>
+    <li><a href="/register" class="btn-nav">Get started</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="hero-content">
+    <div class="hero-badge">AI-Powered Mental Health Support</div>
+    <h1>You deserve to feel<br/><em>heard</em></h1>
+    <p class="hero-sub">
+      A private and empathetic space where you can talk freely
+      Powered by compassionate AI and available whenever you need it
+    </p>
+    <div class="hero-actions">
+      <a href="/register" class="btn-primary">
+        Begin your journey
+        <span>→</span>
+      </a>
+      <a href="/login" class="btn-secondary">Sign in</a>
+    </div>
+
+    <div class="breathing-container">
+      <div class="breathing-ring">
+        <div class="breathing-core">🌿</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Process</span>
+      <h2 class="section-title">Simple. Private.<br/>Always present.</h2>
+      <p class="section-sub">No appointments. No waiting rooms. Just a safe space to be yourself.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step-card reveal">
+        <div class="step-number">01</div>
+        <div class="step-icon">✦</div>
+        <h3 class="step-title">Create your account</h3>
+        <p class="step-desc">Register with your name and country. Your conversations are private and never shared.</p>
+      </div>
+      <div class="step-card reveal">
+        <div class="step-number">02</div>
+        <div class="step-icon">◎</div>
+        <h3 class="step-title">Start a conversation</h3>
+        <p class="step-desc">Talk about whatever is on your mind. There are no right or wrong things to say here.</p>
+      </div>
+      <div class="step-card reveal">
+        <div class="step-number">03</div>
+        <div class="step-icon">❋</div>
+        <h3 class="step-title">Feel understood</h3>
+        <p class="step-desc">Our AI responds with empathy and professional knowledge — not scripted answers.</p>
+      </div>
+      <div class="step-card reveal">
+        <div class="step-number">04</div>
+        <div class="step-icon">◈</div>
+        <h3 class="step-title">Track your journey</h3>
+        <p class="step-desc">See your emotional patterns over time and notice your progress.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="features">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Capabilities</span>
+      <h2 class="section-title">Built with care,<br/>for your wellbeing.</h2>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-item reveal">
+        <div class="feature-dot"></div>
+        <h4 class="feature-title">Speaks your language</h4>
+        <p class="feature-desc">Responds in 20 languages including Arabic, French, Spanish, Hindi and more.</p>
+      </div>
+      <div class="feature-item reveal">
+        <div class="feature-dot"></div>
+        <h4 class="feature-title">Emotionally aware</h4>
+        <p class="feature-desc">Understands your emotional state and adjusts its tone accordingly it's warm when you're sad and grounding when you're anxious.</p>
+      </div>
+      <div class="feature-item reveal">
+        <div class="feature-dot"></div>
+        <h4 class="feature-title">Grounded in knowledge</h4>
+        <p class="feature-desc">Answers are backed by a curated mental health knowledge base not guesswork.</p>
+      </div>
+      <div class="feature-item reveal">
+        <div class="feature-dot"></div>
+        <h4 class="feature-title">Crisis aware</h4>
+        <p class="feature-desc">Recognizes crisis signals immediately and provides local emergency resources for your country.</p>
+      </div>
+      <div class="feature-item reveal">
+        <div class="feature-dot"></div>
+        <h4 class="feature-title">Session memory</h4>
+        <p class="feature-desc">Remembers the context of your conversation so you never have to repeat yourself.</p>
+      </div>
+      <div class="feature-item reveal">
+        <div class="feature-dot"></div>
+        <h4 class="feature-title">Completely private</h4>
+        <p class="feature-desc">Your conversations are yours. No data sold, no third-party access.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-card reveal">
+    <span class="section-label">Ready?</span>
+    <h2 class="section-title">Take the first step</h2>
+    <p>It only takes a moment to create your account. Your first conversation is waiting.</p>
+    <a href="/register" class="btn-primary">Create free account →</a>
+  </div>
+</section>
+
+<footer>
+  <p>© 2026 Serenity. Built with care.</p>
+  <ul class="footer-links">
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
+    <li><a href="#">Help</a></li>
+  </ul>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver(
+    entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
+    { threshold: 0.15 }
+  );
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

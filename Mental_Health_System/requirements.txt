@@ -1,0 +1,17 @@
+torch
+transformers
+datasets
+scikit-learn
+joblib
+pandas
+numpy
+matplotlib
+seaborn
+groq
+python-dotenv
+huggingface-hub
+sentence-transformers
+qdrant-client
+fastapi
+uvicorn
+nltk
