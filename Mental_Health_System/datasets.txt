@@ -1,0 +1,3 @@
+(1) Language Identification Dataset        ---> https://huggingface.co/datasets/papluca/language-identification
+(2) Emotion Dataset                        ---> https://huggingface.co/datasets/dair-ai/emotion
+(3) Mental Health Counseling Conversations ---> https://huggingface.co/datasets/Amod/mental_health_counseling_conversations
