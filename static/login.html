@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Health Assistant – Login</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #auth-container {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        #header {
+            background: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+
+        #auth-form {
+            padding: 30px 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        #auth-form h2 {
+            margin: 0 0 4px 0;
+            font-size: 1.2em;
+            color: #333;
+            text-align: center;
+        }
+
+        #auth-form input {
+            padding: 12px 15px;
+            border: 1px solid #ccc;
+            border-radius: 25px;
+            outline: none;
+            font-size: 1em;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        #auth-form input:focus {
+            border-color: #007bff;
+        }
+
+        #auth-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1em;
+            font-family: inherit;
+            transition: background 0.2s;
+        }
+
+        #auth-btn:hover {
+            background: #0056b3;
+        }
+
+        #auth-btn:disabled {
+            background: #7abaff;
+            cursor: not-allowed;
+        }
+
+        #error-msg {
+            color: #e74c3c;
+            font-size: 0.9em;
+            text-align: center;
+            min-height: 1.2em;
+        }
+
+        #toggle-mode {
+            text-align: center;
+            font-size: 0.9em;
+            color: #555;
+            padding-bottom: 8px;
+        }
+
+        #toggle-mode a {
+            color: #007bff;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        #toggle-mode a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div id="auth-container">
+        <div id="header">Mental Health Assistant</div>
+        <form id="auth-form" onsubmit="handleSubmit(event)">
+            <h2 id="form-title">Login</h2>
+            <input type="text" id="username" placeholder="Username" required autocomplete="username">
+            <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+            <button type="submit" id="auth-btn">Login</button>
+            <div id="error-msg"></div>
+            <div id="toggle-mode">
+                Don't have an account? <a onclick="toggleMode()">Register</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        let isLoginMode = true;
+
+        // If already authenticated, go straight to chat
+        if (localStorage.getItem('token')) {
+            window.location.href = '/chat';
+        }
+
+        function toggleMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('form-title').innerText = isLoginMode ? 'Login' : 'Register';
+            document.getElementById('auth-btn').innerText = isLoginMode ? 'Login' : 'Register';
+            document.getElementById('error-msg').innerText = '';
+            document.getElementById('password').autocomplete = isLoginMode ? 'current-password' : 'new-password';
+
+            const toggleDiv = document.getElementById('toggle-mode');
+            if (isLoginMode) {
+                toggleDiv.innerHTML = 'Don\'t have an account? <a onclick="toggleMode()">Register</a>';
+            } else {
+                toggleDiv.innerHTML = 'Already have an account? <a onclick="toggleMode()">Login</a>';
+            }
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('error-msg');
+            const btn = document.getElementById('auth-btn');
+
+            if (!username || !password) {
+                errorMsg.innerText = 'Please fill in all fields.';
+                return;
+            }
+
+            errorMsg.innerText = '';
+            btn.disabled = true;
+            btn.innerText = isLoginMode ? 'Logging in…' : 'Registering…';
+
+            const endpoint = isLoginMode ? '/api/login' : '/api/register';
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('username', data.username);
+                    window.location.href = '/chat';
+                } else {
+                    errorMsg.innerText = data.detail || data.message || 'Something went wrong.';
+                }
+            } catch (error) {
+                errorMsg.innerText = 'Network error. Make sure the server is running.';
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = isLoginMode ? 'Login' : 'Register';
+            }
+        }
+    </script>
+</body>
+</html>
