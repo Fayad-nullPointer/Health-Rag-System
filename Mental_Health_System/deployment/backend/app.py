@@ -134,6 +134,7 @@ class ChatResponse(BaseModel):
     latency_ms    : float
     sources       : list
     hotline       : Optional[dict] = None
+    timings       : Optional[dict] = None
 
 
 class SessionSummaryOut(BaseModel):
@@ -294,7 +295,8 @@ def chat(
         quality_score = result.get("quality_score", 3),
         latency_ms    = result.get("latency_ms", 0),
         sources       = result.get("sources", []),
-        hotline       = hotline
+        hotline       = hotline,
+        timings       = result.get("timings")
     )
 
 

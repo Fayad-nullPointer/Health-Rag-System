@@ -1,0 +1,10 @@
+{
+  "primary_accuracy": 0.9078947368421053,
+  "routing_accuracy": 0.9210526315789473,
+  "both_accuracy": 0.9078947368421053,
+  "mh_routing_accuracy": 0.9285714285714286,
+  "avg_latency_ms": 4271.285526315788,
+  "total_test_cases": 76,
+  "model_name": "llama-3.1-8b-instant",
+  "few_shot_examples": 43
+}
