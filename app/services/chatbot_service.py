@@ -3,6 +3,7 @@
 # =========================================================
 import os
 import json
+import asyncio
 import logging
 import uuid
 from logging.handlers import RotatingFileHandler
@@ -58,8 +59,9 @@ if not logger.handlers:
     logger.addHandler(file_handler)
 
 # =========================================================
-# HELPERS (NEW)
+# HELPERS
 # =========================================================
+
 def log_event(event_type: str, data: dict):
     logger.info(json.dumps({
         "event": event_type,
@@ -68,12 +70,14 @@ def log_event(event_type: str, data: dict):
 
 
 def log_debug_safe(label: str, data: dict):
-    """Avoid dumping huge unsafe logs unless needed"""
-    logger.debug(f"{label}: {json.dumps(data, ensure_ascii=False, default=str)}")
+    logger.debug(
+        f"{label}: {json.dumps(data, ensure_ascii=False, default=str)}"
+    )
 
 # =========================================================
 # CLIENTS
 # =========================================================
+
 client = Groq(
     api_key=os.getenv("GROQ_API_KEY")
 )
@@ -84,6 +88,7 @@ emotion_model = emotion_inference.EmotionClassifier()
 # =========================================================
 # INTENTS
 # =========================================================
+
 INTENTS = [
     "greeting",
     "goodbye",
@@ -100,9 +105,31 @@ engine = intent_classifier.IntentChatbotEngine(
 )
 
 # =========================================================
+# PARALLEL HELPERS
+# =========================================================
+
+async def detect_language(message: str):
+    return await asyncio.to_thread(
+        language_model.predict,
+        message
+    )
+
+
+async def detect_emotion(message: str):
+    return await asyncio.to_thread(
+        emotion_model.predict,
+        message
+    )
+
+# =========================================================
 # MAIN SERVICE
 # =========================================================
-def process_message(message: str, chat_history: str = "", user_name: str = None):
+
+async def process_message(
+    message: str,
+    chat_history: str = "",
+    user_name: str = None
+):
 
     trace_id = str(uuid.uuid4())
 
@@ -116,18 +143,22 @@ def process_message(message: str, chat_history: str = "", user_name: str = None)
     })
 
     # -----------------------------------------------------
-    # LANGUAGE
+    # LANGUAGE + EMOTION (PARALLEL)
     # -----------------------------------------------------
-    language = str(language_model.predict(message))
+
+    language_result, emotion_result = await asyncio.gather(
+        detect_language(message),
+        detect_emotion(message)
+    )
+
+    language = str(language_result)
+    emotion = emotion_result["emotion"]
+
     log_event("language_detection", {
         "trace_id": trace_id,
         "language": language
     })
 
-    # -----------------------------------------------------
-    # EMOTION
-    # -----------------------------------------------------
-    emotion = emotion_model.predict(message)["emotion"]
     log_event("emotion_detection", {
         "trace_id": trace_id,
         "emotion": emotion
@@ -136,13 +167,18 @@ def process_message(message: str, chat_history: str = "", user_name: str = None)
     # -----------------------------------------------------
     # INTENT
     # -----------------------------------------------------
-    intent_data = engine.classify_intent(
-        user_message=message,
-        language=language,
-        emotion=emotion
+
+    intent_data = await asyncio.to_thread(
+        engine.classify_intent,
+        message,
+        language,
+        emotion
     )
 
-    intent_data = engine.apply_confidence_threshold(intent_data)
+    intent_data = engine.apply_confidence_threshold(
+        intent_data
+    )
+
     intent = intent_data["intent"]
 
     log_event("intent_classification", {
@@ -153,29 +189,35 @@ def process_message(message: str, chat_history: str = "", user_name: str = None)
     # -----------------------------------------------------
     # ROUTING
     # -----------------------------------------------------
+
     metadata = None
 
     if intent == "self_harm_intent":
 
         logger.info("Route: Crisis Handler")
 
-        response = handle_self_harm(message, language)
+        response = await asyncio.to_thread(
+            handle_self_harm,
+            message,
+            language
+        )
 
     elif intent == "asking_mental_health_question":
 
         logger.info("Route: RAG Pipeline")
 
-        # add personalized customization to the prompt
         if user_name:
             personalized_prefix = f"""
-        The user's name is {user_name}.
-        Use it naturally in the conversation when appropriate (not in every sentence).
-        Be warm and personal.
-        """
+The user's name is {user_name}.
+Use it naturally in the conversation when appropriate
+(not in every sentence).
+Be warm and personal.
+"""
         else:
             personalized_prefix = ""
 
-        metadata = rag_pipeline(
+        metadata = await asyncio.to_thread(
+            rag_pipeline,
             query=message,
             language=language,
             emotion=emotion,
@@ -188,26 +230,37 @@ def process_message(message: str, chat_history: str = "", user_name: str = None)
 
         log_event("rag_result", {
             "trace_id": trace_id,
-            "retrieval_quality": metadata.get("retrieval_quality"),
-            "contexts_count": len(metadata.get("retrieved_contexts", [])),
-            "response_length": len(metadata.get("response", ""))
+            "retrieval_quality": metadata.get(
+                "retrieval_quality"
+            ),
+            "contexts_count": len(
+                metadata.get("retrieved_contexts", [])
+            ),
+            "response_length": len(
+                metadata.get("response", "")
+            )
         })
 
         if DEBUG_MODE:
-            log_debug_safe("RAG_METADATA_FULL", metadata)
+            log_debug_safe(
+                "RAG_METADATA_FULL",
+                metadata
+            )
 
     else:
 
         logger.info("Route: Intent Response")
 
-        response = engine.build_response(
-            intent=intent,
-            language=language
+        response = await asyncio.to_thread(
+            engine.build_response,
+            intent,
+            language
         )
 
     # -----------------------------------------------------
     # OUTPUT
     # -----------------------------------------------------
+
     logger.info(f"RESPONSE: {response}")
     logger.info("=" * 80)
 
