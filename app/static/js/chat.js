@@ -10,13 +10,6 @@ if (!localStorage.getItem("user")) {
 
 sendBtn.addEventListener("click", sendMessage);
 
-input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        if (isLoading) return;   // 🚨 block enter while loading
-        sendMessage();
-    }
-});
-
 function setLoading(state) {
     isLoading = state;
     sendBtn.disabled = state;
@@ -101,3 +94,20 @@ function addMessage(text, sender) {
     chatBox.appendChild(div);
     chatBox.scrollTop = chatBox.scrollHeight;
 }
+
+input.addEventListener("input", () => {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 140) + "px";
+});
+
+input.addEventListener("keydown", (e) => {
+    if (isLoading) return;
+
+    // ENTER → send message
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault(); // stop newline
+        sendMessage();
+    }
+
+    // SHIFT + ENTER → allow newline (do nothing)
+});

@@ -186,10 +186,11 @@ body {
     background: #0f172a;
 }
 
-.input-container input {
+.input-container textarea {
     flex: 1;
 
     padding: 14px;
+
     border-radius: 12px;
 
     border: 1px solid #334155;
@@ -198,6 +199,23 @@ body {
     color: white;
 
     outline: none;
+
+    resize: none;          /* 🚫 disable manual resize */
+    min-height: 48px;
+    max-height: 140px;
+
+    overflow-y: auto;
+
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.input-container textarea::-webkit-scrollbar {
+    display: none;
+}
+
+.input-container textarea {
+    scrollbar-width: none; /* Firefox */
 }
 
 .input-container button {
