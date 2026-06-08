@@ -18,7 +18,7 @@ import numpy as np
 
 from functools import lru_cache
 
-load_dotenv()
+load_dotenv("config/.env")
 
 groq_client = Groq(
     api_key=os.getenv("GROQ_API_KEY")

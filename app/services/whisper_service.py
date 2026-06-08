@@ -8,6 +8,7 @@ import logging
 
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
+import re
 
 load_dotenv()
 
@@ -18,6 +19,28 @@ logger = logging.getLogger(__name__)
 # =========================================================
 
 _hf_client = None
+
+# Helper function
+def clean_transcription(text: str) -> str:
+    """
+    Removes unwanted formatting occasionally returned by ASR models:
+    - leading microphone emoji
+    - surrounding single/double quotes
+    - extra whitespace
+    """
+
+    if not text:
+        return ""
+
+    text = text.strip()
+
+    # Remove leading microphone emoji
+    text = re.sub(r"^🎤\s*", "", text)
+
+    # Remove surrounding quotes
+    text = re.sub(r'^["\'](.*)["\']$', r"\1", text)
+
+    return text.strip()
 
 
 def _get_client() -> InferenceClient:
@@ -51,12 +74,6 @@ def _get_client() -> InferenceClient:
 # =========================================================
 
 def _transcribe_sync(audio_bytes: bytes) -> dict:
-    """
-    Synchronous transcription using HuggingFace Inference API.
-    Sends audio bytes to the Whisper model hosted on HF servers.
-
-    Returns dict with 'text' and 'language' keys.
-    """
     client = _get_client()
 
     result = client.automatic_speech_recognition(
@@ -64,7 +81,8 @@ def _transcribe_sync(audio_bytes: bytes) -> dict:
         model="openai/whisper-large-v3",
     )
 
-    transcribed_text = result.text.strip() if result.text else ""
+    raw_text = result.text if result.text else ""
+    transcribed_text = clean_transcription(raw_text)
 
     logger.info(
         f"Whisper transcription: '{transcribed_text}'"
@@ -72,7 +90,7 @@ def _transcribe_sync(audio_bytes: bytes) -> dict:
 
     return {
         "text": transcribed_text,
-        "language": None  # Language will be detected by the text classifier
+        "language": None
     }
 
 
