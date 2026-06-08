@@ -25,5 +25,6 @@ dependencies = [
     "rank-bm25>=0.2.2",
     "scikit-learn>=1.8.0",
     "sentence-transformers>=5.5.1",
+    "huggingface-hub>=0.32.0",
     "weaviate>=0.1.2",
 ]
