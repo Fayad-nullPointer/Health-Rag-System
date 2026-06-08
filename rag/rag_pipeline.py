@@ -1,6 +1,7 @@
 # =========================================================
 # 📦 IMPORTS
 # =========================================================
+import asyncio
 from datasets import load_dataset, Dataset
 import pandas as pd
 
@@ -17,7 +18,7 @@ import numpy as np
 
 from functools import lru_cache
 
-load_dotenv(dotenv_path="config/.env")
+load_dotenv()
 
 groq_client = Groq(
     api_key=os.getenv("GROQ_API_KEY")
@@ -644,6 +645,196 @@ def run_rag_tests(queries):
         })
 
     return pd.DataFrame(logs)
+
+
+# =========================================================
+# ASYNC FUNCTIONS
+# =========================================================
+
+async def semantic_search_async(query, top_k=5):
+    return await asyncio.to_thread(semantic_search, query, top_k)
+
+
+async def bm25_search_async(query, top_k=5):
+    return await asyncio.to_thread(bm25_search, query, top_k)
+
+
+async def hybrid_search_async(query, top_k=10):
+    sem_results, bm25_results = await asyncio.gather(
+        asyncio.to_thread(semantic_search, query, 20),
+        asyncio.to_thread(bm25_search, query, 20)
+    )
+
+    scores = {}
+
+    # --- semantic scoring ---
+    for rank, r in enumerate(sem_results):
+        scores[r.id] = scores.get(r.id, 0) + (1 / (rank + 1))
+
+    # --- BM25 scoring ---
+    for rank, idx in enumerate(bm25_results):
+        scores[idx] = scores.get(idx, 0) + (1 / (rank + 1))
+
+    # --- fusion ranking ---
+    ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+
+    candidates = []
+
+    for i, score in ranked[:top_k]:
+        candidates.append({
+            "id": i,
+            "context": df.iloc[i]["Context"],
+            "response": df.iloc[i]["Response"],
+            "hybrid_score": score
+        })
+
+    return candidates
+
+
+async def rerank_results_async(query, candidates, top_k=5):
+    pairs = [
+        [query, candidate["context"]]
+        for candidate in candidates
+    ]
+
+    rerank_scores = await asyncio.to_thread(reranker.predict, pairs)
+
+    for candidate, score in zip(candidates, rerank_scores):
+        candidate["rerank_score"] = float(score)
+
+    reranked = sorted(
+        candidates,
+        key=lambda x: x["rerank_score"],
+        reverse=True
+    )
+
+    return reranked[:top_k]
+
+
+async def retrieve_async(query, top_k=5):
+    # hybrid retrieval
+    candidates = await hybrid_search_async(query, top_k=20)
+
+    # reranking
+    reranked = await rerank_results_async(query, candidates, top_k=top_k)
+
+    return reranked
+
+
+async def generate_response_async(
+    query,
+    retrieved_contexts,
+    emotion,
+    language,
+    chat_history="",
+    system_context="",
+    retrieval_quality="HIGH"
+):
+    system_prompt, user_prompt = build_prompt(
+        query=query,
+        retrieved_contexts=retrieved_contexts,
+        emotion=emotion,
+        language=language,
+        chat_history=chat_history,
+        system_context=system_context,
+        retrieval_quality=retrieval_quality
+    )
+
+    completion = await asyncio.to_thread(
+        groq_client.chat.completions.create,
+        model="openai/gpt-oss-120b",
+        messages=[
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            }
+        ],
+        temperature=0.3,
+        max_tokens=800
+    )
+
+    return completion.choices[0].message.content
+
+
+async def rag_pipeline_async(query, language=None, emotion=None, chat_history="", system_context="", return_metadata=False):
+
+    # -----------------------------
+    # retrieval
+    # -----------------------------
+    retrieved_contexts = await retrieve_async(query, top_k=10)
+
+    # -----------------------------
+    # rerank filtering
+    # -----------------------------
+    retrieved_contexts = filter_retrievals(
+        retrieved_contexts
+    )
+
+    # -----------------------------
+    # exact deduplication
+    # -----------------------------
+    retrieved_contexts = deduplicate_contexts(
+        retrieved_contexts
+    )
+
+    # -----------------------------
+    # near-duplicate removal
+    # -----------------------------
+    retrieved_contexts = deduplicate_similar_contexts(
+        retrieved_contexts,
+        threshold=0.90
+    )
+
+    # -----------------------------
+    # keep top examples
+    # -----------------------------
+    retrieved_contexts = retrieved_contexts[:5]
+
+    # -----------------------------
+    # retrieval confidence
+    # -----------------------------
+    if retrieved_contexts:
+        top_score = retrieved_contexts[0]["rerank_score"]
+    else:
+        top_score = 0
+
+    retrieval_quality = (
+        "HIGH"
+        if top_score >= 0.30
+        else "LOW"
+    )
+
+    # -----------------------------
+    # generation
+    # -----------------------------
+    response = await generate_response_async(
+        query=query,
+        retrieved_contexts=retrieved_contexts,
+        emotion=emotion,
+        language=language,
+        chat_history=chat_history,
+        system_context=system_context,
+        retrieval_quality=retrieval_quality
+    )
+
+    # -----------------------------
+    # debug metadata
+    # -----------------------------
+    if return_metadata:
+        return {
+            "query": query,
+            "language": language,
+            "emotion": emotion,
+            "retrieved_contexts": retrieved_contexts,
+            "retrieval_quality": retrieval_quality,
+            "response": response
+        }
+
+    return response
 
 
 # =========================================================

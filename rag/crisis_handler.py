@@ -1,3 +1,4 @@
+import asyncio
 from groq import Groq
 from dotenv import load_dotenv
 import os
@@ -60,3 +61,23 @@ def handle_self_harm(user_message, language):
     )
 
     return response.choices[0].message.content
+
+
+# =========================================================
+# ASYNC FUNCTIONS
+# =========================================================
+
+async def handle_self_harm_async(user_message, language):
+    prompt = build_crisis_prompt(user_message, language)
+    result = await asyncio.to_thread(
+        lambda: groq_client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            temperature=0.3,
+            messages=[
+                {"role": "system", "content": "You are a crisis support assistant trained to respond to self-harm related distress. You must be calm, supportive, and prioritize safety."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=400
+        )
+    )
+    return result.choices[0].message.content
