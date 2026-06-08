@@ -235,7 +235,7 @@ async function sendVoiceMessage(audioBlob) {
             const messages = chatBox.querySelectorAll(".user-message");
             const lastUserMsg = messages[messages.length - 1];
             if (lastUserMsg && lastUserMsg.textContent.includes("Voice message sent")) {
-                lastUserMsg.innerHTML = `🎤 <em>"${data.transcribed_text}"</em>`;
+                lastUserMsg.textContent = data.transcribed_text;
             }
         }
 
