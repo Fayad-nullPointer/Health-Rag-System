@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+import asyncio
 
 from app.core.database import SessionLocal
 from app.services.chatbot_service import process_message
@@ -31,18 +32,25 @@ async def chat(
 
     user = db.query(User).filter(User.id == user_id).first()
 
-    save_message(
+    # -------------------------------------------------
+    # PARALLEL: save user message + fetch history
+    # -------------------------------------------------
+    save_task = asyncio.to_thread(
+        save_message,
         db=db,
         user_id=user_id,
         role="user",
         content=request.message
     )
 
-    history = get_history(
+    history_task = asyncio.to_thread(
+        get_history,
         db=db,
         user_id=user_id,
         limit=8
     )
+
+    _, history = await asyncio.gather(save_task, history_task)
 
     history_text = "\n".join(
         f"{msg.role}: {msg.content}"
@@ -55,7 +63,11 @@ async def chat(
         user.first_name
     )
 
-    save_message(
+    # -------------------------------------------------
+    # ASYNC: save assistant response
+    # -------------------------------------------------
+    await asyncio.to_thread(
+        save_message,
         db=db,
         user_id=user_id,
         role="assistant",

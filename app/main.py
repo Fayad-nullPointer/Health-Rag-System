@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 
 from app.api.chat import router as chat_router
 from app.api.auth import router as auth_router
+from app.api.voice import router as voice_router
 
 from app.core.database import Base, engine
 
@@ -23,6 +24,7 @@ templates.env.cache = {}
 
 app.include_router(chat_router)
 app.include_router(auth_router, prefix="/auth")
+app.include_router(voice_router)
 
 @app.get("/")
 def home(request: Request):

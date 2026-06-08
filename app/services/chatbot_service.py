@@ -11,13 +11,13 @@ from logging.handlers import RotatingFileHandler
 from groq import Groq
 from dotenv import load_dotenv
 
-from rag.rag_pipeline import rag_pipeline
+from rag.rag_pipeline import rag_pipeline, rag_pipeline_async
 from classifier import (
     emotion_inference,
     language_inference,
     intent_classifier
 )
-from rag.crisis_handler import handle_self_harm
+from rag.crisis_handler import handle_self_harm, handle_self_harm_async
 
 # =========================================================
 # CONFIG
@@ -165,11 +165,10 @@ async def process_message(
     })
 
     # -----------------------------------------------------
-    # INTENT
+    # INTENT (ASYNC)
     # -----------------------------------------------------
 
-    intent_data = await asyncio.to_thread(
-        engine.classify_intent,
+    intent_data = await engine.classify_intent_async(
         message,
         language,
         emotion
@@ -187,7 +186,7 @@ async def process_message(
     })
 
     # -----------------------------------------------------
-    # ROUTING
+    # ROUTING (ASYNC)
     # -----------------------------------------------------
 
     metadata = None
@@ -196,8 +195,7 @@ async def process_message(
 
         logger.info("Route: Crisis Handler")
 
-        response = await asyncio.to_thread(
-            handle_self_harm,
+        response = await handle_self_harm_async(
             message,
             language
         )
@@ -216,8 +214,7 @@ Be warm and personal.
         else:
             personalized_prefix = ""
 
-        metadata = await asyncio.to_thread(
-            rag_pipeline,
+        metadata = await rag_pipeline_async(
             query=message,
             language=language,
             emotion=emotion,

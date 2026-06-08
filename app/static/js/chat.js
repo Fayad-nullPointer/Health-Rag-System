@@ -111,3 +111,141 @@ input.addEventListener("keydown", (e) => {
 
     // SHIFT + ENTER → allow newline (do nothing)
 });
+
+// =========================================================
+// VOICE RECORDING
+// =========================================================
+
+const micBtn = document.getElementById("mic-btn");
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+micBtn.addEventListener("click", toggleRecording);
+
+async function toggleRecording() {
+    if (isRecording) {
+        stopRecording();
+    } else {
+        await startRecording();
+    }
+}
+
+async function startRecording() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                sampleRate: 16000,
+                channelCount: 1,
+                echoCancellation: true,
+                noiseSuppression: true
+            }
+        });
+
+        mediaRecorder = new MediaRecorder(stream, {
+            mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                ? 'audio/webm;codecs=opus'
+                : 'audio/webm'
+        });
+
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+                audioChunks.push(e.data);
+            }
+        };
+
+        mediaRecorder.onstop = async () => {
+            // Stop all tracks to release mic
+            stream.getTracks().forEach(track => track.stop());
+
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+            if (audioBlob.size < 1000) {
+                addMessage("Recording too short. Please try again.", "bot");
+                return;
+            }
+
+            await sendVoiceMessage(audioBlob);
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        micBtn.classList.add("recording");
+        micBtn.textContent = "⏹";
+
+        // Auto-stop after 60 seconds
+        setTimeout(() => {
+            if (isRecording) {
+                stopRecording();
+            }
+        }, 60000);
+
+    } catch (err) {
+        console.error("Microphone access denied:", err);
+        addMessage("Microphone access denied. Please allow microphone permissions.", "bot");
+    }
+}
+
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+    }
+    isRecording = false;
+    micBtn.classList.remove("recording");
+    micBtn.textContent = "🎤";
+}
+
+async function sendVoiceMessage(audioBlob) {
+    const token = localStorage.getItem("token");
+
+    addMessage("🎤 Voice message sent...", "user");
+
+    setLoading(true);
+    showTypingIndicator();
+
+    try {
+        const formData = new FormData();
+        formData.append("audio", audioBlob, "recording.webm");
+
+        const response = await fetch("/voice", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+
+        console.log("Voice Status:", response.status);
+        console.log("Voice Response:", data);
+
+        removeTypingIndicator();
+
+        if (!response.ok) {
+            addMessage(data.detail || "Voice processing failed", "bot");
+            return;
+        }
+
+        // Show what was transcribed
+        if (data.transcribed_text) {
+            // Replace the placeholder message with actual transcription
+            const messages = chatBox.querySelectorAll(".user-message");
+            const lastUserMsg = messages[messages.length - 1];
+            if (lastUserMsg && lastUserMsg.textContent.includes("Voice message sent")) {
+                lastUserMsg.innerHTML = `🎤 <em>"${data.transcribed_text}"</em>`;
+            }
+        }
+
+        addMessage(data.response, "bot");
+
+    } catch (err) {
+        removeTypingIndicator();
+        addMessage("Voice processing failed. Please try again.", "bot");
+        console.error(err);
+    } finally {
+        setLoading(false);
+    }
+}
