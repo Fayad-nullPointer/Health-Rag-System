@@ -66,13 +66,31 @@ async def voice_chat(
     )
 
     # -------------------------------------------------
-    # TRANSCRIBE (ASYNC)
+    # TRANSCRIBE (ASYNC) + SANITIZE
     # -------------------------------------------------
     transcription = await transcribe(audio_bytes)
+    logger.debug("raw transcription: %r", transcription)
 
-    transcribed_text = transcription["text"]
+    raw_text = transcription.get("text", "") or ""
+    cleaned_text = raw_text.strip()
 
-    if not transcribed_text or transcribed_text.strip() == "":
+    # remove matching surrounding quotes/smart-quotes/guillemets
+    _QUOTE_PAIRS = {
+        '"': '"',
+        "'": "'",
+        '“': '”',
+        '‘': '’',
+        '«': '»',
+        '‹': '›',
+    }
+
+    if len(cleaned_text) >= 2:
+        first = cleaned_text[0]
+        last = cleaned_text[-1]
+        if first in _QUOTE_PAIRS and last == _QUOTE_PAIRS[first]:
+            cleaned_text = cleaned_text[1:-1].strip()
+
+    if not cleaned_text:
         raise HTTPException(
             status_code=400,
             detail="Could not transcribe audio. Please try again."
@@ -85,7 +103,7 @@ async def voice_chat(
 
     save_task = asyncio.to_thread(
         save_message,
-        db, user_id, "user", f"🎤 {transcribed_text}"
+        db, user_id, "user", cleaned_text
     )
 
     history_task = asyncio.to_thread(
@@ -104,7 +122,7 @@ async def voice_chat(
     # PROCESS MESSAGE (EXISTING PIPELINE)
     # -------------------------------------------------
     result = await process_message(
-        transcribed_text,
+        cleaned_text,
         history_text,
         user.first_name if user else None
     )
@@ -120,7 +138,7 @@ async def voice_chat(
     # -------------------------------------------------
     # ADD VOICE-SPECIFIC FIELDS
     # -------------------------------------------------
-    result["transcribed_text"] = transcribed_text
+    result["transcribed_text"] = cleaned_text
     result["voice_language"] = transcription.get("language")
     result["input_type"] = "voice"
 
