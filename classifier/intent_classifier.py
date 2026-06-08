@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from functools import lru_cache
@@ -337,3 +338,20 @@ User: "{user_message}"
             }
 
         return response
+
+    # =====================================================
+    # ASYNC METHODS
+    # =====================================================
+    async def call_llm_async(self, prompt: str) -> dict:
+        return await asyncio.to_thread(self.call_llm, prompt)
+
+    async def classify_intent_async(self, user_message: str, language: str = None, emotion: str = None) -> dict:
+        prompt = self.build_intent_classifier_prompt(
+            user_message=user_message,
+            language=language,
+            emotion=emotion
+        )
+        llm_response = await self.call_llm_async(prompt)
+        validated = self.validate_intent_response(llm_response)
+        validated["language"] = language
+        return validated
