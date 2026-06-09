@@ -17,7 +17,8 @@ from classifier import (
     language_inference,
     intent_classifier
 )
-from rag.crisis_handler import handle_self_harm, handle_self_harm_async
+from rag.crisis_handler import handle_self_harm_async
+from rag.hotlines import get_hotline
 
 # =========================================================
 # CONFIG
@@ -128,7 +129,8 @@ async def detect_emotion(message: str):
 async def process_message(
     message: str,
     chat_history: str = "",
-    user_name: str = None
+    user_name: str = None,
+    user_country: str = None
 ):
 
     trace_id = str(uuid.uuid4())
@@ -195,9 +197,26 @@ async def process_message(
 
         logger.info("Route: Crisis Handler")
 
+        country = user_country or "Unknown"
+
+        log_event("user_country", {
+            "trace_id": trace_id,
+            "country": country
+        })
+
+        hotline = get_hotline(country)
+
+        log_event("crisis_hotline_selected", {
+            "trace_id": trace_id,
+            "country": hotline["country"],
+            "hotline_name": hotline["hotline_name"],
+            "hotline_number": hotline["hotline_number"]
+        })
+
         response = await handle_self_harm_async(
-            message,
-            language
+            user_message=message,
+            language=language,
+            hotline=hotline
         )
 
     elif intent == "asking_mental_health_question":

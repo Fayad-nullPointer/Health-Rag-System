@@ -9,6 +9,7 @@ from app.core.security import get_current_user_id
 from app.services.chat_service import save_message, get_history
 from app.models.user import User
 import logging
+from app.core.database import SessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,41 @@ def get_db():
     finally:
         db.close()
 
+
+def save_message_threadsafe(
+    user_id,
+    role,
+    content
+):
+    db = SessionLocal()
+
+    try:
+        return save_message(
+            db=db,
+            user_id=user_id,
+            role=role,
+            content=content
+        )
+    finally:
+        db.close()
+
+
+def get_history_threadsafe(
+    user_id,
+    limit=8
+):
+    db = SessionLocal()
+
+    try:
+        return get_history(
+            db=db,
+            user_id=user_id,
+            limit=limit
+        )
+    finally:
+        db.close()
+
+
 @router.post("/chat")
 async def chat(
     request: ChatRequest,
@@ -38,21 +74,22 @@ async def chat(
     # PARALLEL: save user message + fetch history
     # -------------------------------------------------
     save_task = asyncio.to_thread(
-        save_message,
-        db=db,
-        user_id=user_id,
-        role="user",
-        content=request.message
+        save_message_threadsafe,
+        user_id,
+        "user",
+        request.message
     )
 
     history_task = asyncio.to_thread(
-        get_history,
-        db=db,
-        user_id=user_id,
-        limit=8
+        get_history_threadsafe,
+        user_id,
+        4
     )
 
-    _, history = await asyncio.gather(save_task, history_task)
+    _, history = await asyncio.gather(
+        save_task,
+        history_task
+    )
 
     history_text = "\n".join(
         f"{msg.role}: {msg.content}"
@@ -66,7 +103,8 @@ async def chat(
     result = await process_message(
         request.message,
         history_text,
-        user.first_name
+        user.first_name,
+        user.country
     )
 
     # -------------------------------------------------
