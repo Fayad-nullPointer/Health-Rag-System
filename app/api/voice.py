@@ -103,7 +103,7 @@ async def voice_chat(
 
     save_task = asyncio.to_thread(
         save_message,
-        db, user_id, "user", transcribed_text
+        db, user_id, "user", cleaned_text
     )
 
     history_task = asyncio.to_thread(

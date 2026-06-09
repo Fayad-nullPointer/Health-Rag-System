@@ -71,6 +71,18 @@ Includes:
 - "I am X"
 - "call me X"
 - starting small talk
+- how are you
+- how are things
+- what's up
+- nice to meet you
+- السلام عليكم
+- أهلا
+- أهلا وسهلا
+- مرحبا
+- ازيك
+- عامل ايه
+- اخبارك ايه
+- كيف حالك
 
 2. goodbye
 Definition:

@@ -214,6 +214,15 @@ Be warm and personal.
         else:
             personalized_prefix = ""
 
+        rag_input = {
+            "query": message,
+            "chat_history": chat_history,
+            "final_prompt_input": f"{chat_history}\n\nUSER: {message}"
+        }
+
+        logger.info("=== RAG INPUT DEBUG ===")
+        logger.info(json.dumps(rag_input, ensure_ascii=False, indent=2))
+
         metadata = await rag_pipeline_async(
             query=message,
             language=language,

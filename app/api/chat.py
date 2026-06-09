@@ -8,7 +8,9 @@ from app.services.chatbot_service import process_message
 from app.core.security import get_current_user_id
 from app.services.chat_service import save_message, get_history
 from app.models.user import User
+import logging
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -56,6 +58,10 @@ async def chat(
         f"{msg.role}: {msg.content}"
         for msg in reversed(history)
     )
+
+    logger.info("=== CHAT HISTORY SENT TO MODEL ===")
+    logger.info(history_text)
+    logger.info("===================================")
 
     result = await process_message(
         request.message,
