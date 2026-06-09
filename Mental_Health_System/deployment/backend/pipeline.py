@@ -168,7 +168,6 @@ Fields: chunks_relevant (bool), relevant_chunk_indices (list), rewritten_query (
 
 
 
-
 def detect_language(text: str) -> dict:
     clean      = " ".join(text.strip().split())
     is_short   = len(clean) <= SHORT_THRESHOLD

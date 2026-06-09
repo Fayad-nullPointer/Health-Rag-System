@@ -15,14 +15,21 @@ from groq import Groq
 from dotenv import load_dotenv
 import os
 import numpy as np
+from openai import OpenAI
 
 from functools import lru_cache
 
 load_dotenv("config/.env")
 
-groq_client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
+# groq_client = Groq(
+#     api_key=os.getenv("GROQ_API_KEY")
+# )
+
+groq_client = OpenAI(
+    base_url="https://lightning.ai/api/v1/",
+    api_key=os.getenv("OPENAI_API_KEY"),
 )
+
 EMBEDDINGS_PATH = "./cache/embeddings.npy"
 
 # =========================================================
@@ -538,7 +545,7 @@ def generate_response(
     )
 
     completion = groq_client.chat.completions.create(
-        model="openai/gpt-oss-120b",
+        model="openai/gpt-4o",
         messages=[
             {
                 "role": "system",
@@ -738,8 +745,8 @@ async def bm25_search_async(query, top_k=5):
 
 async def hybrid_search_async(query, top_k=10):
     sem_results, bm25_results = await asyncio.gather(
-        asyncio.to_thread(semantic_search, query, 20),
-        asyncio.to_thread(bm25_search, query, 20)
+        asyncio.to_thread(semantic_search, query, 15),
+        asyncio.to_thread(bm25_search, query, 15)
     )
 
     scores = {}
@@ -790,7 +797,7 @@ async def rerank_results_async(query, candidates, top_k=5):
 
 async def retrieve_async(query, top_k=5):
     # hybrid retrieval
-    candidates = await hybrid_search_async(query, top_k=20)
+    candidates = await hybrid_search_async(query, top_k=10)
 
     # reranking
     reranked = await rerank_results_async(query, candidates, top_k=top_k)
@@ -819,7 +826,7 @@ async def generate_response_async(
 
     completion = await asyncio.to_thread(
         groq_client.chat.completions.create,
-        model="openai/gpt-oss-120b",
+        model="openai/gpt-4o",
         messages=[
             {
                 "role": "system",
@@ -842,7 +849,7 @@ async def rag_pipeline_async(query, language=None, emotion=None, chat_history=""
     # -----------------------------
     # retrieval
     # -----------------------------
-    retrieved_contexts = await retrieve_async(query, top_k=10)
+    retrieved_contexts = await retrieve_async(query, top_k=8)
 
     # -----------------------------
     # rerank filtering
