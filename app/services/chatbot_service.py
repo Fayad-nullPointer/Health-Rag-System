@@ -173,7 +173,8 @@ async def process_message(
     intent_data = await engine.classify_intent_async(
         message,
         language,
-        emotion
+        emotion,
+        chat_history=chat_history
     )
 
     intent_data = engine.apply_confidence_threshold(

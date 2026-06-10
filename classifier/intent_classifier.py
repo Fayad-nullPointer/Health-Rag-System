@@ -34,9 +34,17 @@ class IntentChatbotEngine:
     # =====================================================
     # PROMPT BUILDER
     # =====================================================
-    def build_intent_classifier_prompt(self, user_message: str, language: str, emotion: str) -> str:
+    def build_intent_classifier_prompt(self, user_message: str, language: str, emotion: str, chat_history: str = "") -> str:
+        history_block = f"""
+Recent conversation context:
+{chat_history}
+""" if chat_history else ""
+        
         return f"""
 You are a secure intent classification engine.
+
+Chat History:
+{history_block}
 
 Detected User Language:
 {language}
@@ -256,7 +264,7 @@ User: "{user_message}"
     # =====================================================
     # CLASSIFICATION PIPELINE
     # =====================================================
-    def classify_intent(self, user_message: str, language: str = None, emotion: str = None) -> dict:
+    def classify_intent(self, user_message: str, language: str = None, emotion: str = None, chat_history: str = "") -> dict:
 
         # ---------------------------------
         # build prompt using language
@@ -264,7 +272,8 @@ User: "{user_message}"
         prompt = self.build_intent_classifier_prompt(
             user_message=user_message,
             language=language,
-            emotion=emotion
+            emotion=emotion,
+            chat_history=chat_history
         )
 
         # ---------------------------------
@@ -357,11 +366,12 @@ User: "{user_message}"
     async def call_llm_async(self, prompt: str) -> dict:
         return await asyncio.to_thread(self.call_llm, prompt)
 
-    async def classify_intent_async(self, user_message: str, language: str = None, emotion: str = None) -> dict:
+    async def classify_intent_async(self, user_message: str, language: str = None, emotion: str = None, chat_history: str = "") -> dict:
         prompt = self.build_intent_classifier_prompt(
             user_message=user_message,
             language=language,
-            emotion=emotion
+            emotion=emotion,
+            chat_history=chat_history
         )
         llm_response = await self.call_llm_async(prompt)
         validated = self.validate_intent_response(llm_response)
