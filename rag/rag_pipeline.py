@@ -615,7 +615,7 @@ def filter_retrievals(retrieved_contexts):
     return [
         item
         for item in retrieved_contexts
-        if item["rerank_score"] >= MIN_RERANK_SCORE
+        if item["hybrid_score"] >= MIN_RERANK_SCORE
     ]
 
 # =========================================================
@@ -666,7 +666,7 @@ def rag_pipeline(query, language=None, emotion=None, chat_history="", system_con
 
     retrieval_quality = (
         "HIGH"
-        if top_score >= 0.30
+        if top_score >= 0.40
         else "LOW"
     )
 
@@ -724,7 +724,7 @@ def run_rag_tests(queries):
                 if len(result["retrieved_contexts"]) > 0 else "",
 
             "top_score_1":
-                result["retrieved_contexts"][0]["rerank_score"]
+                result["retrieved_contexts"][0]["hybrid_score"]
                 if len(result["retrieved_contexts"]) > 0 else "",
         })
 
@@ -743,10 +743,10 @@ async def bm25_search_async(query, top_k=5):
     return await asyncio.to_thread(bm25_search, query, top_k)
 
 
-async def hybrid_search_async(query, top_k=10):
+async def hybrid_search_async(query, top_k=5):
     sem_results, bm25_results = await asyncio.gather(
-        asyncio.to_thread(semantic_search, query, 15),
-        asyncio.to_thread(bm25_search, query, 15)
+        asyncio.to_thread(semantic_search, query, 8),
+        asyncio.to_thread(bm25_search, query, 8)
     )
 
     scores = {}
@@ -796,13 +796,12 @@ async def rerank_results_async(query, candidates, top_k=5):
 
 
 async def retrieve_async(query, top_k=5):
-    # hybrid retrieval
-    candidates = await hybrid_search_async(query, top_k=10)
+    candidates = await hybrid_search_async(
+        query,
+        top_k=top_k
+    )
 
-    # reranking
-    reranked = await rerank_results_async(query, candidates, top_k=top_k)
-
-    return reranked
+    return candidates
 
 
 async def generate_response_async(
@@ -849,7 +848,7 @@ async def rag_pipeline_async(query, language=None, emotion=None, chat_history=""
     # -----------------------------
     # retrieval
     # -----------------------------
-    retrieved_contexts = await retrieve_async(query, top_k=8)
+    retrieved_contexts = await retrieve_async(query, top_k=5)
 
     # -----------------------------
     # rerank filtering
@@ -882,7 +881,7 @@ async def rag_pipeline_async(query, language=None, emotion=None, chat_history=""
     # retrieval confidence
     # -----------------------------
     if retrieved_contexts:
-        top_score = retrieved_contexts[0]["rerank_score"]
+        top_score = retrieved_contexts[0]["hybrid_score"]
     else:
         top_score = 0
 
