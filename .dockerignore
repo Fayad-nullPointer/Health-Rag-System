@@ -1,0 +1,65 @@
+# Version Control
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.coverage
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# Cache & Models
+.cache/
+cache/
+# *.joblib
+*.pt
+emotion-bert-final/
+faiss_mental_health_index/
+
+# Notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Logs
+logs/
+*.log
+
+# Docs & Tests
+docs/
+README.md
+test.py
+tests/
+*.md
+
+# Docker files themselves
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Database
+users.db
+*.sqlite
