@@ -29,7 +29,7 @@ LANGUAGE_MAP = {
 # ── Paths ──────────────────────────────────────────────────────────────────
 EMOTION_MODEL_PATH = os.getenv(
     "EMOTION_MODEL_PATH",
-    "/media/ahmed-fayad/3b40def2-87b7-41ce-8913-2981f887941c/home/ITI Cont.../NLP and LLM/NLP Final Project/emotion-bert-final",
+    "emotion-bert-final" if os.path.exists("emotion-bert-final") else "Fayad11/fine_tuned_emotion_inference_model"
 )
 
 # ── JWT ────────────────────────────────────────────────────────────────────
