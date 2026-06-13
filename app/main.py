@@ -12,9 +12,30 @@ from app.core.database import Base, engine
 from app.models.user import User
 from app.models.chat_message import ChatMessage
 
-Base.metadata.create_all(bind=engine)
+from contextlib import asynccontextmanager
+from rag.rag_pipeline import initialize_rag
 
-app = FastAPI(title="MindCare AI")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    print("Initializing RAG...")
+
+    initialize_rag()
+
+    print("RAG Ready.")
+
+    yield
+
+    print("Shutting down...")
+
+
+app = FastAPI(
+    title="MindCare AI",
+    lifespan=lifespan
+)
+
+Base.metadata.create_all(bind=engine)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
