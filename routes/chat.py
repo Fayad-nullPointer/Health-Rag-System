@@ -20,7 +20,12 @@ router = APIRouter(prefix="/api", tags=["chat"])
 
 class ChatRequest(BaseModel):
     """Body for the text chat endpoint."""
-    user_message: str
+    user_message: str = None
+    message: str = None
+    
+    def get_message(self):
+        """Get the message from either field (backward compatibility)."""
+        return self.user_message or self.message
 
 
 class ChatResponse(BaseModel):
@@ -38,6 +43,13 @@ class VoiceChatResponse(ChatResponse):
     transcribed_text: str
 
 
+class FeedbackRequest(BaseModel):
+    """Body for the feedback endpoint."""
+    vote: str  # "up" or "down"
+    user_message: str
+    bot_response: str
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────
 
 
@@ -45,7 +57,10 @@ class VoiceChatResponse(ChatResponse):
 async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_user)):
     """Process a text chat message through the full ML pipeline."""
     try:
-        result = await pipeline.process_chat_message(request.user_message, user["username"])
+        message = request.get_message()
+        if not message:
+            raise HTTPException(status_code=400, detail="No message provided")
+        result = await pipeline.process_chat_message(message, user["username"])
         return ChatResponse(**result)
     except Exception as e:
         logger.exception("Error processing chat request")
@@ -85,4 +100,36 @@ async def voice_chat_endpoint(
         raise
     except Exception as e:
         logger.exception("Error processing voice chat request")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/feedback")
+async def feedback_endpoint(request: FeedbackRequest):
+    """
+    Accept feedback on bot responses (vote: up/down).
+    This endpoint can optionally log feedback for model improvement.
+    """
+    try:
+        # Log feedback for potential future analysis
+        logger.info(
+            f"Feedback received - Vote: {request.vote}, "
+            f"User message: {request.user_message[:50]}..., "
+            f"Bot response: {request.bot_response[:50]}..."
+        )
+        
+        # Optional: Store feedback in cache/database for analysis
+        if hasattr(pipeline, 'cache') and pipeline.cache:
+            feedback_key = f"feedback:{request.vote}:{hash(request.user_message)}"
+            try:
+                pipeline.cache.set(feedback_key, {
+                    'vote': request.vote,
+                    'user_message': request.user_message,
+                    'bot_response': request.bot_response,
+                }, ttl=86400)  # Store for 24 hours
+            except Exception:
+                pass  # Cache is optional, don't fail the endpoint
+        
+        return {"status": "success", "message": "Feedback recorded"}
+    except Exception as e:
+        logger.exception("Error processing feedback")
         raise HTTPException(status_code=500, detail=str(e))
