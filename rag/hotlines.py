@@ -16,6 +16,7 @@ CRISIS_HOTLINES: dict[str, tuple[str, str, str]] = {
     "Libya"               : ("+218914590805","Libya Crisis Support",       "https://www.befrienders.org"),
 
 
+
     # English-speaking countries
     "United States"       : ("988",          "988 Suicide & Crisis Lifeline", "https://988lifeline.org"),
     "United Kingdom"      : ("116 123",      "Samaritans",                 "https://www.samaritans.org"),
