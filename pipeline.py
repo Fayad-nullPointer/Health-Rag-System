@@ -218,7 +218,7 @@ async def process_chat_message(msg: str, user_id: str) -> dict:
             ]
             response = await asyncio.to_thread(
                 groq_client.chat.completions.create,
-                model="llama-3.3-70b-versatile",
+                model="openai/gpt-oss-120b",
                 temperature=0.1,  # strict low temperature to avoid hallucinating foreign characters
                 messages=prompt_messages,
             )
