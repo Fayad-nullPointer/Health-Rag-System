@@ -284,7 +284,8 @@ class TestIntentChatbotEngine(unittest.TestCase):
 class TestPipelineOrchestrator(unittest.IsolatedAsyncioTestCase):
     """Tests the asyncio orchestrator routing and memory persistence."""
 
-    async def test_process_chat_message_rag(self):
+    @patch("pipeline.log_axiom_event")
+    async def test_process_chat_message_rag(self, mock_log_axiom):
         import pipeline
 
         mock_cache = MagicMock()
@@ -326,7 +327,8 @@ class TestPipelineOrchestrator(unittest.IsolatedAsyncioTestCase):
             "user1", "assistant", "this is evidence-backed advice"
         )
 
-    async def test_process_chat_message_self_harm_rescue(self):
+    @patch("pipeline.log_axiom_event")
+    async def test_process_chat_message_self_harm_rescue(self, mock_log_axiom):
         import pipeline
 
         mock_cache = MagicMock()
@@ -385,6 +387,7 @@ class TestAppEndpoints(unittest.TestCase):
             patch("api.ChatPromptTemplate"),
             patch("api.create_stuff_documents_chain"),
             patch("api.create_retrieval_chain"),
+            patch("routes.chat.log_axiom_event"),
         ]
         for p in cls.patchers:
             p.start()
@@ -486,9 +489,9 @@ class TestAppEndpoints(unittest.TestCase):
         chat_unauth = self.client.post("/api/chat", json={"message": "hello"})
         self.assertEqual(chat_unauth.status_code, 401)
 
-        # Error Path: Empty payload (returns 500 due to backend exception handling catching HTTPException)
+        # Error Path: Empty payload (returns 400 Bad Request)
         chat_empty = self.client.post("/api/chat", json={}, headers=headers)
-        self.assertEqual(chat_empty.status_code, 500)
+        self.assertEqual(chat_empty.status_code, 400)
 
         # Error Path: Pipeline exception throws 500 error
         mock_process.side_effect = Exception("Unexpected failure")
@@ -558,6 +561,34 @@ class TestAppEndpoints(unittest.TestCase):
         # Error Path: Missing fields
         feedback_bad = self.client.post("/api/feedback", json={"vote": "up"})
         self.assertEqual(feedback_bad.status_code, 422)
+
+
+class TestAxiomLogger(unittest.IsolatedAsyncioTestCase):
+    """Tests the Axiom logger module setup and background execution."""
+
+    @patch("axiom_logger._client")
+    @patch("axiom_logger.AXIOM_TOKEN", "mock-token")
+    @patch("axiom_logger.AXIOM_DATASET", "mock-dataset")
+    async def test_log_axiom_event_async(self, mock_client):
+        from axiom_logger import _send_event
+
+        # Test background async ingestion
+        await _send_event("test_event", {"some": "data"})
+        mock_client.ingest_events.assert_called_once()
+        args, kwargs = mock_client.ingest_events.call_args
+        self.assertEqual(kwargs["dataset"], "mock-dataset")
+        self.assertEqual(kwargs["events"][0]["event_type"], "test_event")
+        self.assertEqual(kwargs["events"][0]["some"], "data")
+
+    @patch("axiom_logger._client")
+    @patch("axiom_logger.AXIOM_TOKEN", "mock-token")
+    @patch("axiom_logger.AXIOM_DATASET", "mock-dataset")
+    def test_log_axiom_event_fallback_sync(self, mock_client):
+        from axiom_logger import log_axiom_event
+
+        # Running log_axiom_event outside of running loop fallback
+        log_axiom_event("sync_event", {"val": 1})
+        mock_client.ingest_events.assert_called_once()
 
 
 # =====================================================================

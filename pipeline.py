@@ -10,7 +10,9 @@ import asyncio
 import logging
 import os
 import tempfile
+import time
 from typing import Optional
+from axiom_logger import log_axiom_event
 
 from config import (
     LANGUAGE_MAP,
@@ -119,6 +121,7 @@ async def process_chat_message(msg: str, user_id: str) -> dict:
         A dict with keys: ``original_message``, ``detected_language``,
         ``detected_emotion``, ``detected_intent``, ``response``, ``source``.
     """
+    start_time = time.time()
     logger.info(
         "Processing chat message for user: %s (msg length: %d)", user_id, len(msg)
     )
@@ -274,6 +277,19 @@ async def process_chat_message(msg: str, user_id: str) -> dict:
         )
         memory.add_message(user_id, "user", msg)
         memory.add_message(user_id, "assistant", final_answer)
+
+    latency_ms = int((time.time() - start_time) * 1000)
+    log_axiom_event(
+        "nlp_metric",
+        {
+            "metric": "intent_distribution",
+            "intent": intent_name,
+            "language": detected_lang,
+            "emotion": detected_emotion,
+            "latency_ms": latency_ms,
+        },
+    )
+    log_axiom_event("data_metric", {"metric": "message_length", "length": len(msg)})
 
     return {
         "original_message": msg,

@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from auth import get_current_user
 import pipeline
+from axiom_logger import log_axiom_event
 
 logger = logging.getLogger(__name__)
 
@@ -72,8 +73,37 @@ async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_u
         logger.info(
             "Successfully processed chat request for user: %s", user["username"]
         )
+        log_axiom_event(
+            "server_metric",
+            {
+                "metric": "request_count",
+                "path": "/api/chat",
+                "status_code": 200,
+                "error": False,
+            },
+        )
         return ChatResponse(**result)
+    except HTTPException as e:
+        log_axiom_event(
+            "server_metric",
+            {
+                "metric": "request_count",
+                "path": "/api/chat",
+                "status_code": e.status_code,
+                "error": e.status_code >= 400,
+            },
+        )
+        raise
     except Exception as e:
+        log_axiom_event(
+            "server_metric",
+            {
+                "metric": "request_count",
+                "path": "/api/chat",
+                "status_code": 500,
+                "error": True,
+            },
+        )
         logger.exception("Error processing chat request")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -120,11 +150,38 @@ async def voice_chat_endpoint(
         logger.info(
             "Successfully processed voice chat request for user: %s", user["username"]
         )
+        log_axiom_event(
+            "server_metric",
+            {
+                "metric": "request_count",
+                "path": "/api/chat/voice",
+                "status_code": 200,
+                "error": False,
+            },
+        )
         return VoiceChatResponse(transcribed_text=transcribed_text, **result)
 
-    except HTTPException:
+    except HTTPException as e:
+        log_axiom_event(
+            "server_metric",
+            {
+                "metric": "request_count",
+                "path": "/api/chat/voice",
+                "status_code": e.status_code,
+                "error": e.status_code >= 400,
+            },
+        )
         raise
     except Exception as e:
+        log_axiom_event(
+            "server_metric",
+            {
+                "metric": "request_count",
+                "path": "/api/chat/voice",
+                "status_code": 500,
+                "error": True,
+            },
+        )
         logger.exception("Error processing voice chat request")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -159,7 +216,32 @@ async def feedback_endpoint(request: FeedbackRequest):
             except Exception:
                 pass  # Cache is optional, don't fail the endpoint
 
+        # Log Data-related metric (feedback vote ratios) to Axiom
+        log_axiom_event(
+            "data_metric", {"metric": "feedback_votes", "vote": request.vote}
+        )
+
+        # Log Server-related metric (request count) to Axiom
+        log_axiom_event(
+            "server_metric",
+            {
+                "metric": "request_count",
+                "path": "/api/feedback",
+                "status_code": 200,
+                "error": False,
+            },
+        )
+
         return {"status": "success", "message": "Feedback recorded"}
     except Exception as e:
+        log_axiom_event(
+            "server_metric",
+            {
+                "metric": "request_count",
+                "path": "/api/feedback",
+                "status_code": 500,
+                "error": True,
+            },
+        )
         logger.exception("Error processing feedback")
         raise HTTPException(status_code=500, detail=str(e))
