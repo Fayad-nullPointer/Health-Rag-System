@@ -195,12 +195,11 @@ User: "{user_message}"
     # LLM CALL
     # =====================================================
     def call_llm(self, prompt: str) -> dict:
-
         response = self.groq_client.chat.completions.create(
             model=self.model_name,
             temperature=0,
             response_format={"type": "json_object"},
-            messages=[{"role": "system", "content": prompt}]
+            messages=[{"role": "system", "content": prompt}],
         )
         return json.loads(response.choices[0].message.content)
 
@@ -208,7 +207,6 @@ User: "{user_message}"
     # VALIDATION
     # =====================================================
     def validate_intent_response(self, response: dict) -> dict:
-
         if "intent" not in response:
             return {"intent": "out_of_scope", "confidence": 0.0}
 
@@ -224,7 +222,6 @@ User: "{user_message}"
     # CLASSIFICATION PIPELINE
     # =====================================================
     def classify_intent(self, user_message: str, language: str = None) -> dict:
-
         prompt = self.build_intent_classifier_prompt(user_message)
 
         llm_response = self.call_llm(prompt)
@@ -232,7 +229,9 @@ User: "{user_message}"
         validated = self.validate_intent_response(llm_response)
 
         # Use pre-detected language when available to avoid redundant prediction
-        validated["language"] = language or self.language_predictor.predict(user_message)
+        validated["language"] = language or self.language_predictor.predict(
+            user_message
+        )
 
         return validated
 
@@ -240,7 +239,6 @@ User: "{user_message}"
     # CONFIDENCE FILTER
     # =====================================================
     def apply_confidence_threshold(self, intent_data: dict) -> dict:
-
         if intent_data["confidence"] < self.confidence_threshold:
             intent_data["intent"] = "out_of_scope"
 
@@ -251,14 +249,12 @@ User: "{user_message}"
     # =====================================================
     @lru_cache(maxsize=None)
     def load_locale(self, language: str):
-
         path = os.path.join(self.locales_path, f"{language}.json")
 
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def build_response(self, intent: str, language: str):
-
         locales = self.load_locale(language)
         english = self.load_locale("en")
 
@@ -268,14 +264,12 @@ User: "{user_message}"
     # HANDLERS
     # =====================================================
     def handle(self, intent: str, user_message: str, language: str):
-
         return self.build_response(intent, language)
 
     # =====================================================
     # ROUTER
     # =====================================================
     def route(self, user_message: str, intent_data: dict):
-
         intent_data = self.apply_confidence_threshold(intent_data)
 
         intent = intent_data["intent"]
@@ -287,7 +281,6 @@ User: "{user_message}"
     # MAIN PIPELINE
     # =====================================================
     def chat(self, user_message: str, debug: bool = False):
-
         intent_data = self.classify_intent(user_message)
 
         intent_data = self.apply_confidence_threshold(intent_data)
@@ -298,7 +291,7 @@ User: "{user_message}"
             return {
                 "user": user_message,
                 "intent_data": intent_data,
-                "response": response
+                "response": response,
             }
 
         return response

@@ -8,7 +8,6 @@ gracefully – if Redis is unavailable the chatbot simply has no memory.
 
 import json
 import logging
-from typing import Optional
 
 from cache_layer import CacheLayer
 from config import CACHE_TTL_MEMORY, MAX_MEMORY_MESSAGES
@@ -26,7 +25,9 @@ class ChatMemory:
 
     KEY_PREFIX = "memory"
 
-    def __init__(self, cache: CacheLayer, max_messages: int = MAX_MEMORY_MESSAGES) -> None:
+    def __init__(
+        self, cache: CacheLayer, max_messages: int = MAX_MEMORY_MESSAGES
+    ) -> None:
         self._cache = cache
         self._max_messages = max_messages
         # Each pair = 2 entries, so cap the list at max_messages * 2

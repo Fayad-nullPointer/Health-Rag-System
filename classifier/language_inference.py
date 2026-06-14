@@ -1,7 +1,6 @@
 import argparse
 import joblib
 import sys
-from .preprocessor import preprocess
 
 try:
     from . import preprocessor

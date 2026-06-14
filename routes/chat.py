@@ -20,9 +20,10 @@ router = APIRouter(prefix="/api", tags=["chat"])
 
 class ChatRequest(BaseModel):
     """Body for the text chat endpoint."""
+
     user_message: str = None
     message: str = None
-    
+
     def get_message(self):
         """Get the message from either field (backward compatibility)."""
         return self.user_message or self.message
@@ -30,6 +31,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     """Standard chat response with all pipeline outputs."""
+
     original_message: str
     detected_language: str
     detected_emotion: str
@@ -40,11 +42,13 @@ class ChatResponse(BaseModel):
 
 class VoiceChatResponse(ChatResponse):
     """Extended response that also includes the transcribed audio text."""
+
     transcribed_text: str
 
 
 class FeedbackRequest(BaseModel):
     """Body for the feedback endpoint."""
+
     vote: str  # "up" or "down"
     user_message: str
     bot_response: str
@@ -116,19 +120,23 @@ async def feedback_endpoint(request: FeedbackRequest):
             f"User message: {request.user_message[:50]}..., "
             f"Bot response: {request.bot_response[:50]}..."
         )
-        
+
         # Optional: Store feedback in cache/database for analysis
-        if hasattr(pipeline, 'cache') and pipeline.cache:
+        if hasattr(pipeline, "cache") and pipeline.cache:
             feedback_key = f"feedback:{request.vote}:{hash(request.user_message)}"
             try:
-                pipeline.cache.set(feedback_key, {
-                    'vote': request.vote,
-                    'user_message': request.user_message,
-                    'bot_response': request.bot_response,
-                }, ttl=86400)  # Store for 24 hours
+                pipeline.cache.set(
+                    feedback_key,
+                    {
+                        "vote": request.vote,
+                        "user_message": request.user_message,
+                        "bot_response": request.bot_response,
+                    },
+                    ttl=86400,
+                )  # Store for 24 hours
             except Exception:
                 pass  # Cache is optional, don't fail the endpoint
-        
+
         return {"status": "success", "message": "Feedback recorded"}
     except Exception as e:
         logger.exception("Error processing feedback")

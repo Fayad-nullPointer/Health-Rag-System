@@ -71,9 +71,13 @@ async def lifespan(app: FastAPI):
     print("Initializing HuggingFace Inference Client...")
     hf_client = InferenceClient(provider="auto", api_key=os.getenv("HF_TOKEN"))
     intents = [
-        "greeting", "goodbye", "gratitude",
-        "asking_mental_health_question", "self_harm_intent",
-        "unsafe_query", "out_of_scope",
+        "greeting",
+        "goodbye",
+        "gratitude",
+        "asking_mental_health_question",
+        "self_harm_intent",
+        "unsafe_query",
+        "out_of_scope",
     ]
 
     # Create a single shared LanguagePredictor instance
@@ -128,10 +132,12 @@ async def lifespan(app: FastAPI):
         "Context:\n{context}"
     )
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("human", "{input}"),
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            ("human", "{input}"),
+        ]
+    )
 
     question_answer_chain = create_stuff_documents_chain(llm, prompt)
     rag_chain = create_retrieval_chain(retriever, question_answer_chain)

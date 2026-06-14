@@ -11,25 +11,42 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── Cache TTL constants (seconds) ──────────────────────────────────────────
-CACHE_TTL_LANG = 3600       # 1 hour  – same text → same language
-CACHE_TTL_EMOTION = 3600    # 1 hour  – same text → same emotion from same model
-CACHE_TTL_INTENT = 3600     # 1 hour  – LLM with temp=0 is deterministic
-CACHE_TTL_RAG = 1800        # 30 min  – RAG answer freshness
-CACHE_TTL_MEMORY = 86400    # 24 hours for chat history
+CACHE_TTL_LANG = 3600  # 1 hour  – same text → same language
+CACHE_TTL_EMOTION = 3600  # 1 hour  – same text → same emotion from same model
+CACHE_TTL_INTENT = 3600  # 1 hour  – LLM with temp=0 is deterministic
+CACHE_TTL_RAG = 1800  # 30 min  – RAG answer freshness
+CACHE_TTL_MEMORY = 86400  # 24 hours for chat history
 
 # ── Language map ───────────────────────────────────────────────────────────
 LANGUAGE_MAP = {
-    "ar": "Arabic", "en": "English", "es": "Spanish", "fr": "French",
-    "de": "German", "it": "Italian", "pt": "Portuguese", "ru": "Russian",
-    "zh": "Chinese", "ja": "Japanese", "hi": "Hindi", "tr": "Turkish",
-    "nl": "Dutch", "pl": "Polish", "vi": "Vietnamese", "th": "Thai",
-    "sw": "Swahili", "ur": "Urdu", "el": "Greek", "bg": "Bulgarian",
+    "ar": "Arabic",
+    "en": "English",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+    "pt": "Portuguese",
+    "ru": "Russian",
+    "zh": "Chinese",
+    "ja": "Japanese",
+    "hi": "Hindi",
+    "tr": "Turkish",
+    "nl": "Dutch",
+    "pl": "Polish",
+    "vi": "Vietnamese",
+    "th": "Thai",
+    "sw": "Swahili",
+    "ur": "Urdu",
+    "el": "Greek",
+    "bg": "Bulgarian",
 }
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 EMOTION_MODEL_PATH = os.getenv(
     "EMOTION_MODEL_PATH",
-    "emotion-bert-final" if os.path.exists("emotion-bert-final") else "Fayad11/fine_tuned_emotion_inference_model"
+    "emotion-bert-final"
+    if os.path.exists("emotion-bert-final")
+    else "Fayad11/fine_tuned_emotion_inference_model",
 )
 
 # ── JWT ────────────────────────────────────────────────────────────────────

@@ -70,7 +70,9 @@ async def _run_rag(msg: str, language: str, history_context: str = "") -> str:
     message so the LLM can reference previous turns.
     """
     if history_context:
-        rag_input = f"Previous conversation:\n{history_context}\n\nCurrent message: {msg}"
+        rag_input = (
+            f"Previous conversation:\n{history_context}\n\nCurrent message: {msg}"
+        )
     else:
         rag_input = msg
 
@@ -223,7 +225,9 @@ async def process_chat_message(msg: str, user_id: str) -> dict:
                 messages=prompt_messages,
             )
             final_answer = response.choices[0].message.content
-            cache.set("rescue", rescue_cache_key, {"answer": final_answer}, CACHE_TTL_RAG)
+            cache.set(
+                "rescue", rescue_cache_key, {"answer": final_answer}, CACHE_TTL_RAG
+            )
         source = "Emergency Rescue System"
 
     else:

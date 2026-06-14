@@ -1,6 +1,4 @@
 import os
-import sys
-import json
 import unittest
 import asyncio
 import io
@@ -13,7 +11,8 @@ os.environ["HF_TOKEN"] = "mock-hf-token"
 os.environ["QDRANT_URL"] = "http://mock-qdrant"
 os.environ["QDRANT_API_KEY"] = "mock-qdrant-key"
 
-import auth
+import auth  # noqa: E402
+
 auth.DB_PATH = "test_users.db"
 if os.path.exists(auth.DB_PATH):
     try:
@@ -23,31 +22,37 @@ if os.path.exists(auth.DB_PATH):
 auth.init_db()
 
 # Now import FastAPI test dependencies
-from fastapi.testclient import TestClient
-from fastapi import HTTPException, status
+from fastapi.testclient import TestClient  # noqa: E402
+from fastapi import HTTPException, status  # noqa: E402
 
 
 # =====================================================================
 # 1. CORE LOGIC TESTS
 # =====================================================================
 
+
 class TestPreprocessor(unittest.TestCase):
     """Tests text preprocessing logic across different languages and noise."""
 
     def test_detect_dominant_script(self):
         from classifier.preprocessor import detect_dominant_script
+
         self.assertEqual(detect_dominant_script("Hello world"), "latin")
         self.assertEqual(detect_dominant_script("مرحباً بك"), "arabic")
 
     def test_preprocess_latin(self):
         from classifier.preprocessor import preprocess
+
         # Test noise removal and lowercase conversion
-        text = "Hello, WORLD! Check this link: https://google.com and email test@test.com"
+        text = (
+            "Hello, WORLD! Check this link: https://google.com and email test@test.com"
+        )
         processed = preprocess(text)
         self.assertEqual(processed, "hello world check this link and email")
 
     def test_preprocess_arabic(self):
         from classifier.preprocessor import preprocess
+
         text = "مرحباً! هذا الرقم 12345 غير مطلوب"
         processed = preprocess(text)
         self.assertEqual(processed, "مرحباً هذا الرقم غير مطلوب")
@@ -107,13 +112,14 @@ class TestAuth(unittest.TestCase):
 class TestCacheLayer(unittest.TestCase):
     """Tests Redis cache operations, hashing, and graceful degradation."""
 
-    @patch('redis.from_url')
+    @patch("redis.from_url")
     def test_cache_happy_path(self, mock_from_url):
         mock_redis = MagicMock()
         mock_from_url.return_value = mock_redis
         mock_redis.ping.return_value = True
 
         from cache_layer import CacheLayer
+
         cache = CacheLayer("redis://mock-redis")
         self.assertTrue(cache.is_available)
 
@@ -123,19 +129,22 @@ class TestCacheLayer(unittest.TestCase):
 
         # Cache set
         cache.set("namespace", "key1", {"data": "value"}, ttl=100)
-        mock_redis.setex.assert_called_once_with("namespace:key1", 100, '{"data": "value"}')
+        mock_redis.setex.assert_called_once_with(
+            "namespace:key1", 100, '{"data": "value"}'
+        )
 
         # Cache get
         mock_redis.get.return_value = '{"data": "value"}'
         result = cache.get("namespace", "key1")
         self.assertEqual(result, {"data": "value"})
 
-    @patch('redis.from_url')
+    @patch("redis.from_url")
     def test_cache_graceful_degradation(self, mock_from_url):
         # Simulate connection error
         mock_from_url.side_effect = Exception("Connection refused")
 
         from cache_layer import CacheLayer
+
         cache = CacheLayer("redis://mock-redis-failed")
         self.assertFalse(cache.is_available)
 
@@ -154,13 +163,13 @@ class TestChatMemory(unittest.TestCase):
         mock_cache._redis = mock_redis
 
         from memory import ChatMemory
+
         mem = ChatMemory(mock_cache, max_messages=3)
 
         # Adding a message
         mem.add_message("user123", "user", "I feel stressed")
         mock_redis.rpush.assert_called_once_with(
-            "memory:user123",
-            '{"role": "user", "content": "I feel stressed"}'
+            "memory:user123", '{"role": "user", "content": "I feel stressed"}'
         )
         mock_redis.ltrim.assert_called_once_with("memory:user123", -6, -1)
         mock_redis.expire.assert_called_once()
@@ -168,7 +177,7 @@ class TestChatMemory(unittest.TestCase):
         # Getting history
         mock_redis.lrange.return_value = [
             '{"role": "user", "content": "I feel stressed"}',
-            '{"role": "assistant", "content": "I hear you."}'
+            '{"role": "assistant", "content": "I hear you."}',
         ]
         history = mem.get_history("user123")
         self.assertEqual(len(history), 2)
@@ -186,8 +195,8 @@ class TestChatMemory(unittest.TestCase):
 class TestLanguagePredictor(unittest.TestCase):
     """Tests sklearn language detection pipeline module wrapper."""
 
-    @patch('classifier.language_inference.joblib.load')
-    @patch('classifier.language_inference.preprocessor.preprocess')
+    @patch("classifier.language_inference.joblib.load")
+    @patch("classifier.language_inference.preprocessor.preprocess")
     def test_predict(self, mock_preprocess, mock_load):
         mock_pipeline = MagicMock()
         mock_pipeline.predict.return_value = ["es"]
@@ -195,6 +204,7 @@ class TestLanguagePredictor(unittest.TestCase):
         mock_preprocess.return_value = "hola"
 
         from classifier.language_inference import LanguagePredictor
+
         pred = LanguagePredictor(model_path="dummy.joblib")
         self.assertEqual(pred.predict("hola"), "es")
         mock_pipeline.predict.assert_called_once_with(["hola"])
@@ -203,13 +213,14 @@ class TestLanguagePredictor(unittest.TestCase):
 class TestEmotionPredictor(unittest.TestCase):
     """Tests BERT emotion classification model wrapper."""
 
-    @patch('classifier.emotion_inference.pipeline')
+    @patch("classifier.emotion_inference.pipeline")
     def test_predict(self, mock_pipeline):
         mock_classifier = MagicMock()
         mock_classifier.return_value = [{"label": "sadness", "score": 0.85}]
         mock_pipeline.return_value = mock_classifier
 
         from classifier.emotion_inference import EmotionPredictor
+
         pred = EmotionPredictor(model_path="dummy_dir")
         res = pred.predict("I feel down")
         self.assertEqual(res[0]["label"], "sadness")
@@ -222,17 +233,23 @@ class TestIntentChatbotEngine(unittest.TestCase):
         self.mock_groq = MagicMock()
         self.mock_lang = MagicMock()
         self.mock_lang.predict.return_value = "en"
-        
+
         # Mock choice logic for groq
         mock_choice = MagicMock()
         mock_choice.message.content = '{"intent": "greeting", "confidence": 0.9}'
         self.mock_groq.chat.completions.create.return_value.choices = [mock_choice]
 
         from classifier.intent_classifier import IntentChatbotEngine
+
         self.engine = IntentChatbotEngine(
             groq_client=self.mock_groq,
-            intents=["greeting", "asking_mental_health_question", "self_harm_intent", "out_of_scope"],
-            language_predictor=self.mock_lang
+            intents=[
+                "greeting",
+                "asking_mental_health_question",
+                "self_harm_intent",
+                "out_of_scope",
+            ],
+            language_predictor=self.mock_lang,
         )
 
     def test_classify_intent(self):
@@ -252,11 +269,11 @@ class TestIntentChatbotEngine(unittest.TestCase):
         res_good = self.engine.apply_confidence_threshold(intent_data_good)
         self.assertEqual(res_good["intent"], "greeting")
 
-    @patch('classifier.intent_classifier.IntentChatbotEngine.load_locale')
+    @patch("classifier.intent_classifier.IntentChatbotEngine.load_locale")
     def test_route(self, mock_load_locale):
         mock_load_locale.side_effect = lambda lang: {
             "en": {"greeting": "Hello! How can I help you today?"},
-            "ar": {"greeting": "مرحباً! كيف يمكنني مساعدتك اليوم؟"}
+            "ar": {"greeting": "مرحباً! كيف يمكنني مساعدتك اليوم؟"},
         }.get(lang, {})
 
         intent_data = {"intent": "greeting", "confidence": 0.9, "language": "en"}
@@ -277,7 +294,10 @@ class TestPipelineOrchestrator(unittest.IsolatedAsyncioTestCase):
         mock_emotion = MagicMock()
         mock_emotion.predict.return_value = [{"label": "sadness", "score": 0.9}]
         mock_intent = MagicMock()
-        mock_intent.classify_intent.return_value = {"intent": "asking_mental_health_question", "confidence": 0.95}
+        mock_intent.classify_intent.return_value = {
+            "intent": "asking_mental_health_question",
+            "confidence": 0.95,
+        }
 
         mock_rag = MagicMock()
         mock_rag.invoke.return_value = {"answer": "this is evidence-backed advice"}
@@ -302,7 +322,9 @@ class TestPipelineOrchestrator(unittest.IsolatedAsyncioTestCase):
 
         # Check memory was updated
         mock_mem.add_message.assert_any_call("user1", "user", "I am feeling down")
-        mock_mem.add_message.assert_any_call("user1", "assistant", "this is evidence-backed advice")
+        mock_mem.add_message.assert_any_call(
+            "user1", "assistant", "this is evidence-backed advice"
+        )
 
     async def test_process_chat_message_self_harm_rescue(self):
         import pipeline
@@ -314,7 +336,10 @@ class TestPipelineOrchestrator(unittest.IsolatedAsyncioTestCase):
         mock_emotion = MagicMock()
         mock_emotion.predict.return_value = [{"label": "sadness"}]
         mock_intent = MagicMock()
-        mock_intent.classify_intent.return_value = {"intent": "self_harm_intent", "confidence": 0.99}
+        mock_intent.classify_intent.return_value = {
+            "intent": "self_harm_intent",
+            "confidence": 0.99,
+        }
 
         mock_groq = MagicMock()
         mock_choice = MagicMock()
@@ -339,6 +364,7 @@ class TestPipelineOrchestrator(unittest.IsolatedAsyncioTestCase):
 # 2. ENDPOINT API ROUTE TESTS
 # =====================================================================
 
+
 class TestAppEndpoints(unittest.TestCase):
     """Tests all FastAPI endpoints including authentications and error routes."""
 
@@ -346,25 +372,26 @@ class TestAppEndpoints(unittest.TestCase):
     def setUpClass(cls):
         # We start mock patches for the lifespan model load and clients before importing api.py
         cls.patchers = [
-            patch('api.CacheLayer'),
-            patch('api.Groq'),
-            patch('api.InferenceClient'),
-            patch('api.LanguagePredictor'),
-            patch('api.IntentChatbotEngine'),
-            patch('api.EmotionPredictor'),
-            patch('api.HuggingFaceEmbeddings'),
-            patch('api.QdrantClient'),
-            patch('api.QdrantVectorStore'),
-            patch('api.ChatGroq'),
-            patch('api.ChatPromptTemplate'),
-            patch('api.create_stuff_documents_chain'),
-            patch('api.create_retrieval_chain'),
+            patch("api.CacheLayer"),
+            patch("api.Groq"),
+            patch("api.InferenceClient"),
+            patch("api.LanguagePredictor"),
+            patch("api.IntentChatbotEngine"),
+            patch("api.EmotionPredictor"),
+            patch("api.HuggingFaceEmbeddings"),
+            patch("api.QdrantClient"),
+            patch("api.QdrantVectorStore"),
+            patch("api.ChatGroq"),
+            patch("api.ChatPromptTemplate"),
+            patch("api.create_stuff_documents_chain"),
+            patch("api.create_retrieval_chain"),
         ]
         for p in cls.patchers:
             p.start()
 
         # Import api.py and start test client
         import api
+
         cls.app = api.app
         cls.client = TestClient(cls.app)
 
@@ -397,32 +424,44 @@ class TestAppEndpoints(unittest.TestCase):
 
     def test_auth_registration_and_login_flow(self):
         # Happy Path: Register user
-        reg_res = self.client.post("/api/register", json={"username": "enduser", "password": "mypassword"})
+        reg_res = self.client.post(
+            "/api/register", json={"username": "enduser", "password": "mypassword"}
+        )
         self.assertEqual(reg_res.status_code, 201)
         self.assertEqual(reg_res.json()["username"], "enduser")
         self.assertIn("token", reg_res.json())
 
         # Error Path: Duplicate username registration
-        reg_dup = self.client.post("/api/register", json={"username": "enduser", "password": "newpassword"})
+        reg_dup = self.client.post(
+            "/api/register", json={"username": "enduser", "password": "newpassword"}
+        )
         self.assertEqual(reg_dup.status_code, 409)
 
         # Happy Path: Login
-        login_res = self.client.post("/api/login", json={"username": "enduser", "password": "mypassword"})
+        login_res = self.client.post(
+            "/api/login", json={"username": "enduser", "password": "mypassword"}
+        )
         self.assertEqual(login_res.status_code, 200)
         self.assertIn("token", login_res.json())
 
         # Error Path: Bad credentials login
-        login_bad = self.client.post("/api/login", json={"username": "enduser", "password": "wrongpassword"})
+        login_bad = self.client.post(
+            "/api/login", json={"username": "enduser", "password": "wrongpassword"}
+        )
         self.assertEqual(login_bad.status_code, 401)
 
         # Error Path: Missing request parameters
-        reg_bad_param = self.client.post("/api/register", json={"username": "only_username"})
+        reg_bad_param = self.client.post(
+            "/api/register", json={"username": "only_username"}
+        )
         self.assertEqual(reg_bad_param.status_code, 422)
 
-    @patch('pipeline.process_chat_message')
+    @patch("pipeline.process_chat_message")
     def test_chat_endpoint_protection_and_response(self, mock_process):
         # Login to get valid JWT token
-        login_res = self.client.post("/api/login", json={"username": "enduser", "password": "mypassword"})
+        login_res = self.client.post(
+            "/api/login", json={"username": "enduser", "password": "mypassword"}
+        )
         token = login_res.json()["token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -433,11 +472,13 @@ class TestAppEndpoints(unittest.TestCase):
             "detected_emotion": "joy",
             "detected_intent": "greeting",
             "response": "Hello! Welcome.",
-            "source": "Intent Router"
+            "source": "Intent Router",
         }
 
         # Happy Path: Authenticated chat post
-        chat_res = self.client.post("/api/chat", json={"message": "hello"}, headers=headers)
+        chat_res = self.client.post(
+            "/api/chat", json={"message": "hello"}, headers=headers
+        )
         self.assertEqual(chat_res.status_code, 200)
         self.assertEqual(chat_res.json()["response"], "Hello! Welcome.")
 
@@ -451,14 +492,20 @@ class TestAppEndpoints(unittest.TestCase):
 
         # Error Path: Pipeline exception throws 500 error
         mock_process.side_effect = Exception("Unexpected failure")
-        chat_err = self.client.post("/api/chat", json={"message": "hello"}, headers=headers)
+        chat_err = self.client.post(
+            "/api/chat", json={"message": "hello"}, headers=headers
+        )
         self.assertEqual(chat_err.status_code, 500)
 
-    @patch('pipeline.process_chat_message')
-    @patch('pipeline._transcribe_audio')
-    def test_voice_chat_endpoint_protection_and_response(self, mock_transcribe, mock_process):
+    @patch("pipeline.process_chat_message")
+    @patch("pipeline._transcribe_audio")
+    def test_voice_chat_endpoint_protection_and_response(
+        self, mock_transcribe, mock_process
+    ):
         # Login to get valid JWT token
-        login_res = self.client.post("/api/login", json={"username": "enduser", "password": "mypassword"})
+        login_res = self.client.post(
+            "/api/login", json={"username": "enduser", "password": "mypassword"}
+        )
         token = login_res.json()["token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -470,7 +517,7 @@ class TestAppEndpoints(unittest.TestCase):
             "detected_emotion": "joy",
             "detected_intent": "greeting",
             "response": "Voice request processed.",
-            "source": "Intent Router"
+            "source": "Intent Router",
         }
 
         # Happy Path: Authenticated voice chat
@@ -478,10 +525,12 @@ class TestAppEndpoints(unittest.TestCase):
         voice_res = self.client.post(
             "/api/chat/voice",
             files={"audio": ("recording.webm", audio_file, "audio/webm")},
-            headers=headers
+            headers=headers,
         )
         self.assertEqual(voice_res.status_code, 200)
-        self.assertEqual(voice_res.json()["transcribed_text"], "transcribed voice message")
+        self.assertEqual(
+            voice_res.json()["transcribed_text"], "transcribed voice message"
+        )
         self.assertEqual(voice_res.json()["response"], "Voice request processed.")
 
         # Error Path: Empty audio file upload
@@ -489,7 +538,7 @@ class TestAppEndpoints(unittest.TestCase):
         voice_empty = self.client.post(
             "/api/chat/voice",
             files={"audio": ("recording.webm", empty_audio, "audio/webm")},
-            headers=headers
+            headers=headers,
         )
         self.assertEqual(voice_empty.status_code, 400)
 
@@ -500,8 +549,8 @@ class TestAppEndpoints(unittest.TestCase):
             json={
                 "vote": "down",
                 "user_message": "I feel sad",
-                "bot_response": "I am here for you"
-            }
+                "bot_response": "I am here for you",
+            },
         )
         self.assertEqual(feedback_res.status_code, 200)
         self.assertEqual(feedback_res.json()["status"], "success")

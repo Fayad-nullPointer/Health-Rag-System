@@ -19,12 +19,14 @@ router = APIRouter(prefix="/api", tags=["auth"])
 
 class AuthRequest(BaseModel):
     """Body for register and login endpoints."""
+
     username: str
     password: str
 
 
 class AuthResponse(BaseModel):
     """Returned on successful authentication."""
+
     token: str
     username: str
 
@@ -32,7 +34,9 @@ class AuthResponse(BaseModel):
 # ── Endpoints ──────────────────────────────────────────────────────────────
 
 
-@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED
+)
 async def register(body: AuthRequest):
     """Register a new user and return a JWT token."""
     try:
