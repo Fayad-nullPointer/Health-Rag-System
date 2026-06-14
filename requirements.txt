@@ -1,36 +1,42 @@
---extra-index-url https://download.pytorch.org/whl/cpu
-
 # FastAPI and Web Server
-fastapi>=0.100.0
-uvicorn>=0.22.0
-pydantic>=2.0.0
-python-dotenv>=1.0.0
+fastapi
+uvicorn
+pydantic
+python-dotenv
+python-multipart
 
-# Redis Cache
-redis[hiredis]>=5.0.0
+# Redis Cache (graceful degradation – app works without Redis)
+redis[hiredis]
 
 # LLM Providers and Clients
-groq>=0.9.0
-qdrant-client>=1.5.0
+groq
+qdrant-client
 
 # Machine Learning and Emotion Inference (CPU only)
-torch==2.0.0
-transformers>=4.30.0
-sentence-transformers>=2.2.2
-scikit-learn>=1.2.0
-joblib>=1.3.0
+# Install torch CPU-only via the dedicated PyTorch index in the Dockerfile
+# to avoid pulling the massive CUDA wheels from PyPI.
+torch
+transformers
+sentence-transformers
+scikit-learn
+joblib
 
 # LangChain Core and Vector Store Integrations
-langchain-core>=0.2.0
-langchain-community>=0.2.0
-langchain-qdrant>=0.1.0
-langchain-groq>=0.1.0
-langchain-classic>=0.0.1
+langchain-core
+langchain-community
+langchain-qdrant
+langchain-groq
+langchain-classic
 
 # Hugging Face Integration
-huggingface-hub>=0.15.0
+huggingface-hub
 
 # Authentication & Security
-python-jose[cryptography]>=3.3.0
-passlib[bcrypt]>=1.7.4
-bcrypt>=4.0.0
+# passlib 1.7.4 is incompatible with bcrypt>=4.1 (removed __about__.__version__).
+# Pin bcrypt<4.1 to avoid the AttributeError at import time.
+python-jose[cryptography]
+passlib[bcrypt]==1.7.4
+bcrypt==4.3.0
+
+# numpy – pin below 2.0 to avoid ABI breakage with torch/sklearn/transformers
+numpy
