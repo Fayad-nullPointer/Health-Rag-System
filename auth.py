@@ -72,6 +72,7 @@ def create_user(username: str, password: str) -> dict:
     Raises:
         ValueError: If a user with the same username already exists.
     """
+    logger.info("Attempting to create user: %s", username)
     truncated_password = _truncate_password(password)
     hashed = pwd_context.hash(truncated_password)
     try:
@@ -81,24 +82,34 @@ def create_user(username: str, password: str) -> dict:
                 (username, hashed),
             )
             conn.commit()
+            logger.info(
+                "Successfully created user: %s (id: %s)", username, cursor.lastrowid
+            )
             return {"id": cursor.lastrowid, "username": username}
     except sqlite3.IntegrityError:
+        logger.error("Failed to create user: username '%s' already exists", username)
         raise ValueError(f"Username '{username}' already exists")
 
 
 def authenticate_user(username: str, password: str) -> Optional[str]:
     """Verify credentials and return a JWT token, or ``None`` on failure."""
+    logger.info("Attempting to authenticate user: %s", username)
     with _get_connection() as conn:
         row = conn.execute(
             "SELECT password_hash FROM users WHERE username = ?", (username,)
         ).fetchone()
 
     if row is None:
+        logger.warning("Authentication failed: user '%s' not found", username)
         return None
     truncated_password = _truncate_password(password)
     if not pwd_context.verify(truncated_password, row["password_hash"]):
+        logger.warning(
+            "Authentication failed: invalid password for user '%s'", username
+        )
         return None
 
+    logger.info("Successfully authenticated user: %s", username)
     return create_access_token({"sub": username})
 
 

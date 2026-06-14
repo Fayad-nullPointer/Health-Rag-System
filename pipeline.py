@@ -119,6 +119,9 @@ async def process_chat_message(msg: str, user_id: str) -> dict:
         A dict with keys: ``original_message``, ``detected_language``,
         ``detected_emotion``, ``detected_intent``, ``response``, ``source``.
     """
+    logger.info(
+        "Processing chat message for user: %s (msg length: %d)", user_id, len(msg)
+    )
     msg_hash = CacheLayer.hash_key(msg)
 
     # ── 1. Check caches ────────────────────────────────────────────────
@@ -131,32 +134,41 @@ async def process_chat_message(msg: str, user_id: str) -> dict:
 
     if cached_lang:
         detected_lang = cached_lang["language"]
+        logger.info("Language cache HIT for message: %s", detected_lang)
     else:
+        logger.info("Language cache MISS, queueing prediction")
         tasks["lang"] = _predict_language(msg)
 
     if cached_emotion:
         detected_emotion = cached_emotion["label"]
+        logger.info("Emotion cache HIT for message: %s", detected_emotion)
     else:
+        logger.info("Emotion cache MISS, queueing prediction")
         tasks["emotion"] = _predict_emotion(msg)
 
     if cached_intent:
         intent_data = cached_intent
+        logger.info("Intent cache HIT for message: %s", intent_data.get("intent"))
     else:
+        logger.info("Intent cache MISS, queueing classification")
         tasks["intent"] = _classify_intent(msg)
 
     # ── 3-4. Run all cache-missed steps concurrently ───────────────────
     if tasks:
+        logger.info("Executing %d cache-miss prediction tasks concurrently", len(tasks))
         keys = list(tasks.keys())
         results = await asyncio.gather(*[tasks[k] for k in keys])
         result_map = dict(zip(keys, results))
 
         if "lang" in result_map:
             detected_lang = result_map["lang"]
+            logger.info("Detected language: %s", detected_lang)
             cache.set("lang", msg_hash, {"language": detected_lang}, CACHE_TTL_LANG)
 
         if "emotion" in result_map:
             emotion_res = result_map["emotion"]
             detected_emotion = emotion_res[0]["label"] if emotion_res else "unknown"
+            logger.info("Detected emotion: %s", detected_emotion)
             emotion_payload: dict = {"label": detected_emotion}
             if emotion_res:
                 emotion_payload["score"] = emotion_res[0].get("score")
@@ -164,6 +176,11 @@ async def process_chat_message(msg: str, user_id: str) -> dict:
 
         if "intent" in result_map:
             intent_data = result_map["intent"]
+            logger.info(
+                "Detected intent: %s (confidence: %s)",
+                intent_data.get("intent"),
+                intent_data.get("confidence"),
+            )
             cache.set("intent", msg_hash, intent_data, CACHE_TTL_INTENT)
 
     intent_name = intent_data.get("intent", "out_of_scope")
@@ -175,26 +192,39 @@ async def process_chat_message(msg: str, user_id: str) -> dict:
         history_context = memory.format_for_prompt(user_id)
 
     # ── 6. Orchestrate final action based on intent ────────────────────
+    logger.info(
+        "Routing query for user %s with intent: %s, language: %s",
+        user_id,
+        intent_name,
+        full_language_name,
+    )
     if intent_name == "asking_mental_health_question":
         # Check RAG cache (keyed on message + language for localised answers)
         rag_cache_key = f"{msg_hash}:{detected_lang}"
         cached_rag = cache.get("rag", rag_cache_key)
 
         if cached_rag:
+            logger.info("RAG cache HIT")
             final_answer = cached_rag["answer"]
         else:
+            logger.info("RAG cache MISS, running RAG pipeline...")
             final_answer = await _run_rag(msg, full_language_name, history_context)
             cache.set("rag", rag_cache_key, {"answer": final_answer}, CACHE_TTL_RAG)
         source = "RAG Model"
 
     elif intent_name == "self_harm_intent":
+        logger.warning("CRITICAL: Self-harm intent detected for user: %s", user_id)
         # Try to rescue patient with a highly empathetic, supportive message
         rescue_cache_key = f"rescue:{msg_hash}:{detected_lang}"
         cached_rescue = cache.get("rescue", rescue_cache_key)
 
         if cached_rescue:
+            logger.info("Rescue response cache HIT")
             final_answer = cached_rescue["answer"]
         else:
+            logger.info(
+                "Rescue response cache MISS, calling emergency rescue generator..."
+            )
             prompt_messages = [
                 {
                     "role": "system",
@@ -231,6 +261,7 @@ async def process_chat_message(msg: str, user_id: str) -> dict:
         source = "Emergency Rescue System"
 
     else:
+        logger.info("Handling general intent: %s with Locale Router", intent_name)
         # Use the standard fallback router (e.g. greeting, etc.)
         # Route method returns localized and safe responses built into your engine.
         final_answer = intent_engine.route(msg, intent_data)
@@ -238,6 +269,9 @@ async def process_chat_message(msg: str, user_id: str) -> dict:
 
     # ── 7. Persist to memory ───────────────────────────────────────────
     if memory is not None:
+        logger.info(
+            "Persisting message and response to chat memory for user: %s", user_id
+        )
         memory.add_message(user_id, "user", msg)
         memory.add_message(user_id, "assistant", final_answer)
 

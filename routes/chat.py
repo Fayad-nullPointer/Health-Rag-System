@@ -60,11 +60,18 @@ class FeedbackRequest(BaseModel):
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_user)):
     """Process a text chat message through the full ML pipeline."""
+    logger.info("Received chat request from user: %s", user["username"])
     try:
         message = request.get_message()
         if not message:
+            logger.warning(
+                "Chat request from user %s failed: Empty message", user["username"]
+            )
             raise HTTPException(status_code=400, detail="No message provided")
         result = await pipeline.process_chat_message(message, user["username"])
+        logger.info(
+            "Successfully processed chat request for user: %s", user["username"]
+        )
         return ChatResponse(**result)
     except Exception as e:
         logger.exception("Error processing chat request")
@@ -77,9 +84,17 @@ async def voice_chat_endpoint(
     user: dict = Depends(get_current_user),
 ):
     """Accept an audio file, transcribe it with Whisper, then run the chat pipeline."""
+    logger.info(
+        "Received voice request from user: %s, file: %s",
+        user["username"],
+        audio.filename,
+    )
     try:
         audio_bytes = await audio.read()
         if not audio_bytes:
+            logger.warning(
+                "Voice request from user %s failed: Empty audio file", user["username"]
+            )
             raise HTTPException(status_code=400, detail="Empty audio file")
 
         # 1. Transcribe
@@ -88,6 +103,10 @@ async def voice_chat_endpoint(
         )
         transcribed_text = transcribed_text.strip()
         if not transcribed_text:
+            logger.warning(
+                "Voice request from user %s failed: Could not transcribe speech",
+                user["username"],
+            )
             raise HTTPException(
                 status_code=400, detail="Could not transcribe any speech from audio"
             )
@@ -98,6 +117,9 @@ async def voice_chat_endpoint(
         result = await pipeline.process_chat_message(transcribed_text, user["username"])
 
         # 3. Return extended response with transcription
+        logger.info(
+            "Successfully processed voice chat request for user: %s", user["username"]
+        )
         return VoiceChatResponse(transcribed_text=transcribed_text, **result)
 
     except HTTPException:

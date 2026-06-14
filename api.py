@@ -59,7 +59,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialise heavy ML models and inject them into the pipeline module."""
-    print("Initializing Models and Pipeline... (This may take a moment)")
+    logger.info("Initializing Models and Pipeline... (This may take a moment)")
 
     # 0. Initialize Cache (non-blocking, degrades gracefully)
     cache = CacheLayer(REDIS_URL)
@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI):
     groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
     # HuggingFace Inference Client for Whisper STT
-    print("Initializing HuggingFace Inference Client...")
+    logger.info("Initializing HuggingFace Inference Client...")
     hf_client = InferenceClient(provider="auto", api_key=os.getenv("HF_TOKEN"))
     intents = [
         "greeting",
@@ -81,10 +81,10 @@ async def lifespan(app: FastAPI):
     ]
 
     # Create a single shared LanguagePredictor instance
-    print("Loading Language Predictor...")
+    logger.info("Loading Language Predictor...")
     language_predictor = LanguagePredictor()
 
-    print("Loading Intent Classifier...")
+    logger.info("Loading Intent Classifier...")
     # Inject the shared language_predictor to avoid loading the ~35MB model twice
     intent_engine = IntentChatbotEngine(
         groq_client=groq_client,
@@ -92,11 +92,11 @@ async def lifespan(app: FastAPI):
         language_predictor=language_predictor,
     )
 
-    print("Loading Emotion Predictor...")
+    logger.info("Loading Emotion Predictor...")
     emotion_predictor = EmotionPredictor(EMOTION_MODEL_PATH)
 
     # 2. Initialize Embeddings and Vector DB
-    print("Loading Vector Store & RAG Chain...")
+    logger.info("Loading Vector Store & RAG Chain...")
     embeddings = HuggingFaceEmbeddings(
         model_name="BAAI/bge-small-en-v1.5",
         model_kwargs={"device": "cpu"},
@@ -152,7 +152,7 @@ async def lifespan(app: FastAPI):
     pl.cache = cache
     pl.memory = ChatMemory(cache)
 
-    print("Pipeline Initialized Successfully!")
+    logger.info("Pipeline Initialized Successfully!")
     yield
 
 
@@ -180,12 +180,14 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/")
 async def root():
     """Serve the login page."""
+    logger.info("Request received: serving login page")
     return FileResponse("static/login.html")
 
 
 @app.get("/chat")
 async def chat_page():
     """Serve the main chat interface."""
+    logger.info("Request received: serving chat page")
     return FileResponse("static/index.html")
 
 
