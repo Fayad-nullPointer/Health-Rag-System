@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   api:
-    build: .
+    image: fayad123/mental_health_chatbot:latest
     ports:
       - "8000:8000"
     env_file:
