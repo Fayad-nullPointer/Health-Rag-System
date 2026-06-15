@@ -5,7 +5,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, Rag_Pipeline_Development]
 
 env:
   ECR_REPOSITORY: mental-health-chatbot
