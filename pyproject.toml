@@ -27,6 +27,8 @@ dependencies = [
     "sentence-transformers>=5.5.1",
     "huggingface-hub>=0.32.0",
     "weaviate>=0.1.2",
+    "sqlalchemy>=2.0.50",
+    "pytest>=9.1.0",
 ]
 
 [dependency-groups]

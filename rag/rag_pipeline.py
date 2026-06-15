@@ -18,188 +18,173 @@ from openai import OpenAI
 
 from functools import lru_cache
 
+from rag.rag_state import RAG_READY_EVENT, RAG_INIT_LOCK
+
 load_dotenv("config/.env")
 
 # =========================================================
-# GLOBAL OBJECTS
+# GLOBAL STATE
 # =========================================================
 df = None
 bm25 = None
 model = None
 qdrant_client = None
-reranker = None
 groq_client = None
+reranker = None
 
-collection_name = "serenity-docs-v2"
-
-RAG_INITIALIZED = False
+collection_name = "mental_health_rag"
 EMBEDDINGS_PATH = "./data/embeddings.npy"
 
 
-def ensure_rag_initialized():
-    if not RAG_INITIALIZED:
-        initialize_rag()
-
-
-def create_collection_if_needed(embeddings):
-    global qdrant_client
-
-    existing = [c.name for c in qdrant_client.get_collections().collections]
-
-    if collection_name in existing:
-        print("Collection already exists.")
-        return
-
-    print("Creating collection...")
-
-    qdrant_client.create_collection(
-        collection_name=collection_name,
-        vectors_config=VectorParams(size=embeddings.shape[1], distance=Distance.COSINE),
-    )
-
-    print("Collection created.")
-
-
-def index_collection_if_empty(embeddings):
-    global qdrant_client, df
-
-    info = qdrant_client.get_collection(collection_name)
-
-    points_count = info.points_count or 0
-
-    if points_count > 0:
-        print(f"Collection already indexed ({points_count} points).")
-        return
-
-    print("Indexing documents...")
-
-    points = [
-        PointStruct(
-            id=i,
-            vector=embeddings[i].tolist(),
-            payload={"context": row["Context"], "response": row["Response"]},
-        )
-        for i, row in df.iterrows()
-    ]
-
-    BATCH_SIZE = 500
-
-    for start in range(0, len(points), BATCH_SIZE):
-        batch = points[start : start + BATCH_SIZE]
-
-        qdrant_client.upsert(collection_name=collection_name, points=batch, wait=True)
-
-        print(f"Uploaded {min(start + BATCH_SIZE, len(points))}/{len(points)}")
-
-    print("Indexing completed.")
-
-
+# =========================================================
+# INIT CONTROL (SAFE SINGLETON)
+# =========================================================
 def initialize_rag():
-    global df, bm25, model, reranker, qdrant_client, groq_client, RAG_INITIALIZED
+    global df, bm25, model, qdrant_client, groq_client
 
-    if RAG_INITIALIZED:
-        print("RAG already initialized.")
+    # fast exit if already ready
+    if RAG_READY_EVENT.is_set():
+        print("RAG already initialized. Skipping.")
         return
 
-    # -------------------------
-    # Dataset
-    # -------------------------
+    with RAG_INIT_LOCK:
+        # double-check inside lock
+        if RAG_READY_EVENT.is_set():
+            return
 
-    ds = load_dataset("Amod/mental_health_counseling_conversations")
+        try:
+            print("Initializing RAG pipeline...")
 
-    df = ds["train"].to_pandas()
+            # -------------------------
+            # Dataset
+            # -------------------------
+            ds = load_dataset("Amod/mental_health_counseling_conversations")
 
-    df = (
-        df.drop_duplicates(subset=["Context", "Response"])
-        .dropna()
-        .reset_index(drop=True)
-    )
+            df = ds["train"].to_pandas()
+            df = (
+                df.drop_duplicates(subset=["Context", "Response"])
+                .dropna()
+                .reset_index(drop=True)
+            )
 
-    print(f"Loaded {len(df)} records")
+            print(f"Loaded {len(df)} records")
 
-    # -------------------------
-    # Models
-    # -------------------------
+            # -------------------------
+            # Model
+            # -------------------------
+            model = SentenceTransformer("BAAI/bge-m3")
 
-    model = SentenceTransformer("BAAI/bge-m3")
+            # -------------------------
+            # Embeddings
+            # -------------------------
+            print("Loading cached embeddings...")
+            embeddings = np.load(EMBEDDINGS_PATH)
+            print("Embeddings loaded from build cache")
 
-    # Optional
-    # reranker = CrossEncoder(
-    #     "BAAI/bge-reranker-v2-m3"
-    # )
+            # -------------------------
+            # BM25
+            # -------------------------
+            tokenized_corpus = [text.lower().split() for text in df["Context"]]
+            bm25 = BM25Okapi(tokenized_corpus)
 
-    # -------------------------
-    # Embeddings
-    # -------------------------
+            # -------------------------
+            # Qdrant
+            # -------------------------
+            # qdrant_client = QdrantClient(
+            #     host=os.getenv("QDRANT_HOST", "qdrant"),
+            #     port=int(os.getenv("QDRANT_PORT", 6333)),
+            #     timeout=120
+            # )
+            qdrant_client = QdrantClient(host="localhost", port=6333, timeout=120)
 
-    if os.path.exists(EMBEDDINGS_PATH):
-        print("Loading cached embeddings...")
+            existing = [c.name for c in qdrant_client.get_collections().collections]
 
-        embeddings = np.load(EMBEDDINGS_PATH)
+            if collection_name not in existing:
+                qdrant_client.create_collection(
+                    collection_name=collection_name,
+                    vectors_config=VectorParams(
+                        size=embeddings.shape[1], distance=Distance.COSINE
+                    ),
+                )
 
-    else:
-        print("Generating embeddings...")
+            info = qdrant_client.get_collection(collection_name)
 
-        embeddings = model.encode(
-            df["Context"].tolist(),
-            batch_size=64,
-            show_progress_bar=True,
-            normalize_embeddings=True,
-        )
+            if (info.points_count or 0) == 0:
+                print("Indexing vectors into Qdrant...")
 
-        os.makedirs("./data", exist_ok=True)
+                points = [
+                    PointStruct(
+                        id=i,
+                        vector=embeddings[i].tolist(),
+                        payload={
+                            "context": row["Context"],
+                            "response": row["Response"],
+                        },
+                    )
+                    for i, row in df.iterrows()
+                ]
 
-        np.save(EMBEDDINGS_PATH, embeddings)
+                BATCH_SIZE = 500
 
-    # -------------------------
-    # BM25
-    # -------------------------
+                for start in range(0, len(points), BATCH_SIZE):
+                    batch = points[start : start + BATCH_SIZE]
 
-    tokenized_corpus = [text.lower().split() for text in df["Context"]]
+                    qdrant_client.upsert(
+                        collection_name=collection_name, points=batch, wait=True
+                    )
 
-    bm25 = BM25Okapi(tokenized_corpus)
+            # -------------------------
+            # LLM
+            # -------------------------
+            groq_client = OpenAI(
+                base_url="https://lightning.ai/api/v1/",
+                api_key=os.getenv("OPENAI_API_KEY"),
+            )
 
-    # -------------------------
-    # Qdrant
-    # -------------------------
+            print("RAG initialized successfully.")
 
-    # qdrant_client = QdrantClient(host=os.getenv("QDRANT_HOST", "qdrant"),
-    #                              port=int(os.getenv("QDRANT_PORT", 6333)),
-    #                              timeout=120)
-    qdrant_client = QdrantClient(host="localhost", port=6333, timeout=120)
+            # ONLY ONE SOURCE OF TRUTH
+            RAG_READY_EVENT.set()
 
-    create_collection_if_needed(embeddings)
+        except Exception as e:
+            # important: allow retry on failure
+            RAG_READY_EVENT.clear()
+            print(f"RAG initialization failed: {e}")
+            raise
 
-    index_collection_if_empty(embeddings)
 
-    # -------------------------
-    # LLM
-    # -------------------------
+# =========================================================
+# SAFETY CHECK (NO RE-INIT HERE)
+# =========================================================
+def ensure_rag_initialized(timeout: int = 120):
+    """
+    Blocks until RAG is ready.
+    Prevents race conditions instead of crashing requests.
+    """
 
-    groq_client = OpenAI(
-        base_url="https://lightning.ai/api/v1/", api_key=os.getenv("OPENAI_API_KEY")
-    )
+    if RAG_READY_EVENT.is_set():
+        return
 
-    RAG_INITIALIZED = True
+    # Wait for initialization to finish (if already running in background)
+    ready = RAG_READY_EVENT.wait(timeout=timeout)
 
-    print("RAG initialized successfully.")
+    if not ready:
+        raise RuntimeError("RAG initialization timeout. Please try again later.")
 
 
 # =========================================================
 # SEMANTIC SEARCH
 # =========================================================
 def semantic_search(query, top_k=5):
-    global model
-
     ensure_rag_initialized()
-
-    if model is None:
-        model = SentenceTransformer("BAAI/bge-m3")
 
     query_vec = model.encode(query).tolist()
 
     results = qdrant_client.query_points(
-        collection_name=collection_name, query=query_vec, limit=top_k, with_payload=True
+        collection_name=collection_name,
+        query=query_vec,
+        limit=top_k,
+        with_payload=True,
     )
 
     return results.points
