@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String
 from app.db.base import Base
 from sqlalchemy.orm import relationship
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -18,9 +19,7 @@ class User(Base):
     country = Column(String, nullable=False)
 
     messages = relationship(
-        "ChatMessage",
-        back_populates="user",
-        cascade="all, delete-orphan"
+        "ChatMessage", back_populates="user", cascade="all, delete-orphan"
     )
 
     @property

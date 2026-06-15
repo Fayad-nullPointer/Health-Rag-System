@@ -13,12 +13,10 @@ def run_rag(query: str):
         chat_history="",
         language="en",
         emotion="neutral",
-        return_metadata=True
+        return_metadata=True,
     )
 
     return {
         "answer": result["response"],
-        "contexts": [
-            c["context"] for c in result["retrieved_contexts"]
-        ]
+        "contexts": [c["context"] for c in result["retrieved_contexts"]],
     }

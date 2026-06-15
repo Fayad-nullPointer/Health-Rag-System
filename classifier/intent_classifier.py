@@ -34,12 +34,18 @@ class IntentChatbotEngine:
     # =====================================================
     # PROMPT BUILDER
     # =====================================================
-    def build_intent_classifier_prompt(self, user_message: str, language: str, emotion: str, chat_history: str = "") -> str:
-        history_block = f"""
+    def build_intent_classifier_prompt(
+        self, user_message: str, language: str, emotion: str, chat_history: str = ""
+    ) -> str:
+        history_block = (
+            f"""
 Recent conversation context:
 {chat_history}
-""" if chat_history else ""
-        
+"""
+            if chat_history
+            else ""
+        )
+
         return f"""
 You are a secure intent classification engine.
 
@@ -241,7 +247,7 @@ User: "{user_message}"
             model=self.model_name,
             temperature=0,
             response_format={"type": "json_object"},
-            messages=[{"role": "system", "content": prompt}]
+            messages=[{"role": "system", "content": prompt}],
         )
         return json.loads(response.choices[0].message.content)
 
@@ -264,7 +270,13 @@ User: "{user_message}"
     # =====================================================
     # CLASSIFICATION PIPELINE
     # =====================================================
-    def classify_intent(self, user_message: str, language: str = None, emotion: str = None, chat_history: str = "") -> dict:
+    def classify_intent(
+        self,
+        user_message: str,
+        language: str = None,
+        emotion: str = None,
+        chat_history: str = "",
+    ) -> dict:
 
         # ---------------------------------
         # build prompt using language
@@ -273,7 +285,7 @@ User: "{user_message}"
             user_message=user_message,
             language=language,
             emotion=emotion,
-            chat_history=chat_history
+            chat_history=chat_history,
         )
 
         # ---------------------------------
@@ -355,7 +367,7 @@ User: "{user_message}"
             return {
                 "user": user_message,
                 "intent_data": intent_data,
-                "response": response
+                "response": response,
             }
 
         return response
@@ -366,12 +378,18 @@ User: "{user_message}"
     async def call_llm_async(self, prompt: str) -> dict:
         return await asyncio.to_thread(self.call_llm, prompt)
 
-    async def classify_intent_async(self, user_message: str, language: str = None, emotion: str = None, chat_history: str = "") -> dict:
+    async def classify_intent_async(
+        self,
+        user_message: str,
+        language: str = None,
+        emotion: str = None,
+        chat_history: str = "",
+    ) -> dict:
         prompt = self.build_intent_classifier_prompt(
             user_message=user_message,
             language=language,
             emotion=emotion,
-            chat_history=chat_history
+            chat_history=chat_history,
         )
         llm_response = await self.call_llm_async(prompt)
         validated = self.validate_intent_response(llm_response)

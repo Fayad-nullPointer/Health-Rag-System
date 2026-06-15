@@ -5,13 +5,12 @@ import asyncio
 from datasets import load_dataset
 import pandas as pd
 
-from sentence_transformers import SentenceTransformer, CrossEncoder
+from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct
 from difflib import SequenceMatcher
 
 from rank_bm25 import BM25Okapi
-from groq import Groq
 from dotenv import load_dotenv
 import os
 import numpy as np
@@ -31,20 +30,21 @@ qdrant_client = None
 reranker = None
 groq_client = None
 
-collection_name = "mental_health_rag"
+collection_name = "serenity-docs-v2"
 
 RAG_INITIALIZED = False
-EMBEDDINGS_PATH = "./cache/embeddings.npy"
+EMBEDDINGS_PATH = "./data/embeddings.npy"
+
+
+def ensure_rag_initialized():
+    if not RAG_INITIALIZED:
+        initialize_rag()
 
 
 def create_collection_if_needed(embeddings):
-
     global qdrant_client
 
-    existing = [
-        c.name
-        for c in qdrant_client.get_collections().collections
-    ]
+    existing = [c.name for c in qdrant_client.get_collections().collections]
 
     if collection_name in existing:
         print("Collection already exists.")
@@ -54,28 +54,21 @@ def create_collection_if_needed(embeddings):
 
     qdrant_client.create_collection(
         collection_name=collection_name,
-        vectors_config=VectorParams(
-            size=embeddings.shape[1],
-            distance=Distance.COSINE
-        )
+        vectors_config=VectorParams(size=embeddings.shape[1], distance=Distance.COSINE),
     )
 
     print("Collection created.")
 
-def index_collection_if_empty(embeddings):
 
+def index_collection_if_empty(embeddings):
     global qdrant_client, df
 
-    info = qdrant_client.get_collection(
-        collection_name
-    )
+    info = qdrant_client.get_collection(collection_name)
 
     points_count = info.points_count or 0
 
     if points_count > 0:
-        print(
-            f"Collection already indexed ({points_count} points)."
-        )
+        print(f"Collection already indexed ({points_count} points).")
         return
 
     print("Indexing documents...")
@@ -84,62 +77,40 @@ def index_collection_if_empty(embeddings):
         PointStruct(
             id=i,
             vector=embeddings[i].tolist(),
-            payload={
-                "context": row["Context"],
-                "response": row["Response"]
-            }
+            payload={"context": row["Context"], "response": row["Response"]},
         )
         for i, row in df.iterrows()
     ]
 
     BATCH_SIZE = 500
 
-    for start in range(
-        0,
-        len(points),
-        BATCH_SIZE
-    ):
+    for start in range(0, len(points), BATCH_SIZE):
+        batch = points[start : start + BATCH_SIZE]
 
-        batch = points[start:start + BATCH_SIZE]
+        qdrant_client.upsert(collection_name=collection_name, points=batch, wait=True)
 
-        qdrant_client.upsert(
-            collection_name=collection_name,
-            points=batch,
-            wait=True
-        )
-
-        print(
-            f"Uploaded {min(start + BATCH_SIZE, len(points))}/{len(points)}"
-        )
+        print(f"Uploaded {min(start + BATCH_SIZE, len(points))}/{len(points)}")
 
     print("Indexing completed.")
 
 
 def initialize_rag():
-
     global df, bm25, model, reranker, qdrant_client, groq_client, RAG_INITIALIZED
 
     if RAG_INITIALIZED:
         print("RAG already initialized.")
         return
 
-    print("Initializing RAG...")
-
     # -------------------------
     # Dataset
     # -------------------------
 
-    ds = load_dataset(
-        "Amod/mental_health_counseling_conversations"
-    )
+    ds = load_dataset("Amod/mental_health_counseling_conversations")
 
     df = ds["train"].to_pandas()
 
     df = (
-        df
-        .drop_duplicates(
-            subset=["Context", "Response"]
-        )
+        df.drop_duplicates(subset=["Context", "Response"])
         .dropna()
         .reset_index(drop=True)
     )
@@ -150,9 +121,7 @@ def initialize_rag():
     # Models
     # -------------------------
 
-    model = SentenceTransformer(
-        "BAAI/bge-m3"
-    )
+    model = SentenceTransformer("BAAI/bge-m3")
 
     # Optional
     # reranker = CrossEncoder(
@@ -163,98 +132,74 @@ def initialize_rag():
     # Embeddings
     # -------------------------
 
-    if os.path.exists(
-        EMBEDDINGS_PATH
-    ):
+    if os.path.exists(EMBEDDINGS_PATH):
+        print("Loading cached embeddings...")
 
-        print(
-            "Loading cached embeddings..."
-        )
-
-        embeddings = np.load(
-            EMBEDDINGS_PATH
-        )
+        embeddings = np.load(EMBEDDINGS_PATH)
 
     else:
-
-        print(
-            "Generating embeddings..."
-        )
+        print("Generating embeddings...")
 
         embeddings = model.encode(
             df["Context"].tolist(),
             batch_size=64,
             show_progress_bar=True,
-            normalize_embeddings=True
+            normalize_embeddings=True,
         )
 
-        os.makedirs(
-            "./cache",
-            exist_ok=True
-        )
+        os.makedirs("./data", exist_ok=True)
 
-        np.save(
-            EMBEDDINGS_PATH,
-            embeddings
-        )
+        np.save(EMBEDDINGS_PATH, embeddings)
 
     # -------------------------
     # BM25
     # -------------------------
 
-    tokenized_corpus = [
-        text.lower().split()
-        for text in df["Context"]
-    ]
+    tokenized_corpus = [text.lower().split() for text in df["Context"]]
 
-    bm25 = BM25Okapi(
-        tokenized_corpus
-    )
+    bm25 = BM25Okapi(tokenized_corpus)
 
     # -------------------------
     # Qdrant
     # -------------------------
 
-    qdrant_client = QdrantClient(
-        host="localhost",
-        port=6333,
-        timeout=120
-    )
+    # qdrant_client = QdrantClient(host=os.getenv("QDRANT_HOST", "qdrant"),
+    #                              port=int(os.getenv("QDRANT_PORT", 6333)),
+    #                              timeout=120)
+    qdrant_client = QdrantClient(host="localhost", port=6333, timeout=120)
 
-    create_collection_if_needed(
-        embeddings
-    )
+    create_collection_if_needed(embeddings)
 
-    index_collection_if_empty(
-        embeddings
-    )
+    index_collection_if_empty(embeddings)
 
     # -------------------------
     # LLM
     # -------------------------
 
     groq_client = OpenAI(
-        base_url="https://lightning.ai/api/v1/",
-        api_key=os.getenv(
-            "OPENAI_API_KEY"
-        )
+        base_url="https://lightning.ai/api/v1/", api_key=os.getenv("OPENAI_API_KEY")
     )
 
     RAG_INITIALIZED = True
 
     print("RAG initialized successfully.")
 
+
 # =========================================================
 # SEMANTIC SEARCH
 # =========================================================
 def semantic_search(query, top_k=5):
+    global model
+
+    ensure_rag_initialized()
+
+    if model is None:
+        model = SentenceTransformer("BAAI/bge-m3")
+
     query_vec = model.encode(query).tolist()
 
-    results = qdrant_client .query_points(
-        collection_name=collection_name,
-        query=query_vec,
-        limit=top_k,
-        with_payload=True
+    results = qdrant_client.query_points(
+        collection_name=collection_name, query=query_vec, limit=top_k, with_payload=True
     )
 
     return results.points
@@ -264,14 +209,14 @@ def semantic_search(query, top_k=5):
 # BM25 SEARCH
 # =========================================================
 def bm25_search(query, top_k=5):
+    ensure_rag_initialized()
+
     tokens = query.lower().split()
     scores = bm25.get_scores(tokens)
 
-    top_indices = sorted(
-        range(len(scores)),
-        key=lambda i: scores[i],
-        reverse=True
-    )[:top_k]
+    top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[
+        :top_k
+    ]
 
     return top_indices
 
@@ -299,42 +244,41 @@ def hybrid_search(query, top_k=10):
     candidates = []
 
     for i, score in ranked[:top_k]:
-        candidates.append({
-            "id": i,
-            "context": df.iloc[i]["Context"],
-            "response": df.iloc[i]["Response"],
-            "hybrid_score": score
-        })
+        candidates.append(
+            {
+                "id": i,
+                "context": df.iloc[i]["Context"],
+                "response": df.iloc[i]["Response"],
+                "hybrid_score": score,
+            }
+        )
 
     return candidates
+
 
 # =========================================================
 # RE-RANKER
 # =========================================================
 
+
 def rerank_results(query, candidates, top_k=5):
 
-    pairs = [
-        [query, candidate["context"]]
-        for candidate in candidates
-    ]
+    pairs = [[query, candidate["context"]] for candidate in candidates]
 
     rerank_scores = reranker.predict(pairs)
 
     for candidate, score in zip(candidates, rerank_scores):
         candidate["rerank_score"] = float(score)
 
-    reranked = sorted(
-        candidates,
-        key=lambda x: x["rerank_score"],
-        reverse=True
-    )
+    reranked = sorted(candidates, key=lambda x: x["rerank_score"], reverse=True)
 
     return reranked[:top_k]
+
 
 # =========================================================
 # RETREIVAL PIPELINE
 # =========================================================
+
 
 def retrieve(query, top_k=5):
 
@@ -346,9 +290,11 @@ def retrieve(query, top_k=5):
 
     return reranked
 
+
 # =========================================================
 # TEST EMBEDDINGS
 # =========================================================
+
 
 def run_multilingual_test(queries, top_k=5):
 
@@ -358,9 +304,7 @@ def run_multilingual_test(queries, top_k=5):
 
         retrieved = retrieve(q, top_k=top_k)
 
-        row = {
-            "query": q
-        }
+        row = {"query": q}
 
         for i, item in enumerate(retrieved):
 
@@ -371,9 +315,11 @@ def run_multilingual_test(queries, top_k=5):
 
     return pd.DataFrame(logs)
 
+
 # =========================================================
 # BUILD PROMPT
 # =========================================================
+
 
 @lru_cache(maxsize=1)
 def get_system_prompt():
@@ -396,6 +342,7 @@ If no suitable recommendation exists:
 - If the user expresses self-harm, suicidal thoughts, or immediate danger, prioritize safety and encourage professional or emergency support.
 - Keep responses concise and helpful.
 """
+
 
 @lru_cache(maxsize=1)
 def get_prompt_instructions():
@@ -525,6 +472,7 @@ Response Style:
 - Do not overuse the user's name.
 """
 
+
 def build_prompt(
     query,
     retrieved_contexts,
@@ -532,14 +480,15 @@ def build_prompt(
     language,
     chat_history="",
     system_context="",
-    retrieval_quality="HIGH"
+    retrieval_quality="HIGH",
 ):
 
     system_prompt = get_system_prompt()
     instructions = get_prompt_instructions()
 
-    context_text = "\n\n".join([
-    f"""
+    context_text = "\n\n".join(
+        [
+            f"""
 Retrieved Example {i+1}
 
 Situation:
@@ -548,8 +497,9 @@ Situation:
 Suggested Guidance:
 {item['response']}
 """
-    for i, item in enumerate(retrieved_contexts)
-])
+            for i, item in enumerate(retrieved_contexts)
+        ]
+    )
 
     user_prompt = f"""
 {system_context}
@@ -585,6 +535,7 @@ Generate a supportive, empathetic, grounded, and contextually relevant response.
 # RESPONSE
 # =========================================================
 
+
 def generate_response(
     query,
     retrieved_contexts,
@@ -592,7 +543,7 @@ def generate_response(
     language,
     chat_history="",
     system_context="",
-    retrieval_quality="HIGH"
+    retrieval_quality="HIGH",
 ):
 
     system_prompt, user_prompt = build_prompt(
@@ -602,46 +553,40 @@ def generate_response(
         language=language,
         chat_history=chat_history,
         system_context=system_context,
-        retrieval_quality=retrieval_quality
+        retrieval_quality=retrieval_quality,
     )
 
     completion = groq_client.chat.completions.create(
         model="openai/gpt-4o",
         messages=[
-            {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": user_prompt
-            }
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
         ],
         temperature=0.3,
-        max_tokens=800
+        max_tokens=800,
     )
 
     return completion.choices[0].message.content
 
+
 # =========================================================
 # DEDUPLICATION
 # =========================================================
+
 
 def deduplicate_contexts(retrieved_contexts):
     seen = set()
     unique_contexts = []
 
     for item in retrieved_contexts:
-        key = (
-            item["context"].strip().lower(),
-            item["response"].strip().lower()
-        )
+        key = (item["context"].strip().lower(), item["response"].strip().lower())
 
         if key not in seen:
             seen.add(key)
             unique_contexts.append(item)
 
     return unique_contexts
+
 
 def deduplicate_similar_contexts(contexts, threshold=0.90):
     unique = []
@@ -651,9 +596,7 @@ def deduplicate_similar_contexts(contexts, threshold=0.90):
 
         for existing in unique:
             similarity = SequenceMatcher(
-                None,
-                item["context"],
-                existing["context"]
+                None, item["context"], existing["context"]
             ).ratio()
 
             if similarity >= threshold:
@@ -665,6 +608,7 @@ def deduplicate_similar_contexts(contexts, threshold=0.90):
 
     return unique
 
+
 # =========================================================
 # RETRIEVAL FILTERING
 # =========================================================
@@ -674,16 +618,23 @@ MIN_RERANK_SCORE = 0.18
 
 def filter_retrievals(retrieved_contexts):
     return [
-        item
-        for item in retrieved_contexts
-        if item["hybrid_score"] >= MIN_RERANK_SCORE
+        item for item in retrieved_contexts if item["hybrid_score"] >= MIN_RERANK_SCORE
     ]
+
 
 # =========================================================
 # RAG PIPELINE
 # =========================================================
 
-def rag_pipeline(query, language=None, emotion=None, chat_history="", system_context="", return_metadata=False):
+
+def rag_pipeline(
+    query,
+    language=None,
+    emotion=None,
+    chat_history="",
+    system_context="",
+    return_metadata=False,
+):
 
     # -----------------------------
     # retrieval
@@ -693,23 +644,18 @@ def rag_pipeline(query, language=None, emotion=None, chat_history="", system_con
     # -----------------------------
     # rerank filtering
     # -----------------------------
-    retrieved_contexts = filter_retrievals(
-        retrieved_contexts
-    )
+    retrieved_contexts = filter_retrievals(retrieved_contexts)
 
     # -----------------------------
     # exact deduplication
     # -----------------------------
-    retrieved_contexts = deduplicate_contexts(
-        retrieved_contexts
-    )
+    retrieved_contexts = deduplicate_contexts(retrieved_contexts)
 
     # -----------------------------
     # near-duplicate removal
     # -----------------------------
     retrieved_contexts = deduplicate_similar_contexts(
-        retrieved_contexts,
-        threshold=0.90
+        retrieved_contexts, threshold=0.90
     )
 
     # -----------------------------
@@ -725,11 +671,7 @@ def rag_pipeline(query, language=None, emotion=None, chat_history="", system_con
     else:
         top_score = 0
 
-    retrieval_quality = (
-        "HIGH"
-        if top_score >= 0.40
-        else "LOW"
-    )
+    retrieval_quality = "HIGH" if top_score >= 0.40 else "LOW"
 
     # -----------------------------
     # generation
@@ -741,7 +683,7 @@ def rag_pipeline(query, language=None, emotion=None, chat_history="", system_con
         language=language,
         chat_history=chat_history,
         system_context=system_context,
-        retrieval_quality=retrieval_quality
+        retrieval_quality=retrieval_quality,
     )
 
     # -----------------------------
@@ -754,14 +696,16 @@ def rag_pipeline(query, language=None, emotion=None, chat_history="", system_con
             "emotion": emotion,
             "retrieved_contexts": retrieved_contexts,
             "retrieval_quality": retrieval_quality,
-            "response": response
+            "response": response,
         }
 
     return response
 
+
 # =========================================================
 # RAG TESTS
 # =========================================================
+
 
 def run_rag_tests(queries):
 
@@ -769,25 +713,26 @@ def run_rag_tests(queries):
 
     for q in queries:
 
-        result = rag_pipeline(
-            q,
-            return_metadata=True
+        result = rag_pipeline(q, return_metadata=True)
+
+        logs.append(
+            {
+                "query": result["query"],
+                "language": result["language"],
+                "emotion": result["emotion"],
+                "response": result["response"],
+                "top_context_1": (
+                    result["retrieved_contexts"][0]["context"]
+                    if len(result["retrieved_contexts"]) > 0
+                    else ""
+                ),
+                "top_score_1": (
+                    result["retrieved_contexts"][0]["hybrid_score"]
+                    if len(result["retrieved_contexts"]) > 0
+                    else ""
+                ),
+            }
         )
-
-        logs.append({
-            "query": result["query"],
-            "language": result["language"],
-            "emotion": result["emotion"],
-            "response": result["response"],
-
-            "top_context_1":
-                result["retrieved_contexts"][0]["context"]
-                if len(result["retrieved_contexts"]) > 0 else "",
-
-            "top_score_1":
-                result["retrieved_contexts"][0]["hybrid_score"]
-                if len(result["retrieved_contexts"]) > 0 else "",
-        })
 
     return pd.DataFrame(logs)
 
@@ -795,6 +740,7 @@ def run_rag_tests(queries):
 # =========================================================
 # ASYNC FUNCTIONS
 # =========================================================
+
 
 async def semantic_search_async(query, top_k=5):
     return await asyncio.to_thread(semantic_search, query, top_k)
@@ -807,7 +753,7 @@ async def bm25_search_async(query, top_k=5):
 async def hybrid_search_async(query, top_k=5):
     sem_results, bm25_results = await asyncio.gather(
         asyncio.to_thread(semantic_search, query, 8),
-        asyncio.to_thread(bm25_search, query, 8)
+        asyncio.to_thread(bm25_search, query, 8),
     )
 
     scores = {}
@@ -826,41 +772,33 @@ async def hybrid_search_async(query, top_k=5):
     candidates = []
 
     for i, score in ranked[:top_k]:
-        candidates.append({
-            "id": i,
-            "context": df.iloc[i]["Context"],
-            "response": df.iloc[i]["Response"],
-            "hybrid_score": score
-        })
+        candidates.append(
+            {
+                "id": i,
+                "context": df.iloc[i]["Context"],
+                "response": df.iloc[i]["Response"],
+                "hybrid_score": score,
+            }
+        )
 
     return candidates
 
 
 async def rerank_results_async(query, candidates, top_k=5):
-    pairs = [
-        [query, candidate["context"]]
-        for candidate in candidates
-    ]
+    pairs = [[query, candidate["context"]] for candidate in candidates]
 
     rerank_scores = await asyncio.to_thread(reranker.predict, pairs)
 
     for candidate, score in zip(candidates, rerank_scores):
         candidate["rerank_score"] = float(score)
 
-    reranked = sorted(
-        candidates,
-        key=lambda x: x["rerank_score"],
-        reverse=True
-    )
+    reranked = sorted(candidates, key=lambda x: x["rerank_score"], reverse=True)
 
     return reranked[:top_k]
 
 
 async def retrieve_async(query, top_k=5):
-    candidates = await hybrid_search_async(
-        query,
-        top_k=top_k
-    )
+    candidates = await hybrid_search_async(query, top_k=top_k)
 
     return candidates
 
@@ -872,7 +810,7 @@ async def generate_response_async(
     language,
     chat_history="",
     system_context="",
-    retrieval_quality="HIGH"
+    retrieval_quality="HIGH",
 ):
     system_prompt, user_prompt = build_prompt(
         query=query,
@@ -881,30 +819,31 @@ async def generate_response_async(
         language=language,
         chat_history=chat_history,
         system_context=system_context,
-        retrieval_quality=retrieval_quality
+        retrieval_quality=retrieval_quality,
     )
 
     completion = await asyncio.to_thread(
         groq_client.chat.completions.create,
         model="openai/gpt-4o",
         messages=[
-            {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": user_prompt
-            }
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
         ],
         temperature=0.3,
-        max_tokens=800
+        max_tokens=800,
     )
 
     return completion.choices[0].message.content
 
 
-async def rag_pipeline_async(query, language=None, emotion=None, chat_history="", system_context="", return_metadata=False):
+async def rag_pipeline_async(
+    query,
+    language=None,
+    emotion=None,
+    chat_history="",
+    system_context="",
+    return_metadata=False,
+):
 
     # -----------------------------
     # retrieval
@@ -914,23 +853,18 @@ async def rag_pipeline_async(query, language=None, emotion=None, chat_history=""
     # -----------------------------
     # rerank filtering
     # -----------------------------
-    retrieved_contexts = filter_retrievals(
-        retrieved_contexts
-    )
+    retrieved_contexts = filter_retrievals(retrieved_contexts)
 
     # -----------------------------
     # exact deduplication
     # -----------------------------
-    retrieved_contexts = deduplicate_contexts(
-        retrieved_contexts
-    )
+    retrieved_contexts = deduplicate_contexts(retrieved_contexts)
 
     # -----------------------------
     # near-duplicate removal
     # -----------------------------
     retrieved_contexts = deduplicate_similar_contexts(
-        retrieved_contexts,
-        threshold=0.90
+        retrieved_contexts, threshold=0.90
     )
 
     # -----------------------------
@@ -946,11 +880,7 @@ async def rag_pipeline_async(query, language=None, emotion=None, chat_history=""
     else:
         top_score = 0
 
-    retrieval_quality = (
-        "HIGH"
-        if top_score >= 0.30
-        else "LOW"
-    )
+    retrieval_quality = "HIGH" if top_score >= 0.30 else "LOW"
 
     # -----------------------------
     # generation
@@ -962,7 +892,7 @@ async def rag_pipeline_async(query, language=None, emotion=None, chat_history=""
         language=language,
         chat_history=chat_history,
         system_context=system_context,
-        retrieval_quality=retrieval_quality
+        retrieval_quality=retrieval_quality,
     )
 
     # -----------------------------
@@ -975,7 +905,7 @@ async def rag_pipeline_async(query, language=None, emotion=None, chat_history=""
             "emotion": emotion,
             "retrieved_contexts": retrieved_contexts,
             "retrieval_quality": retrieval_quality,
-            "response": response
+            "response": response,
         }
 
     return response
@@ -992,25 +922,17 @@ if __name__ == "__main__":
         # 🇬🇧 English (mental health + safety)
         "I feel like giving up on everything and I don't see a point to being here anymore.",
         "My workload is causing me to miss deadlines and I'm losing sleep over it. How do I start managing this?",
-       
         # 🇸🇦 Arabic
         "أشعر أنني أريد الاستسلام ولا أرى أي معنى للحياة الآن",
-
         # 🇪🇸 Spanish
         "Siento que quiero rendirme y no veo sentido a seguir viviendo",
-        "Tengo mucho estrés con el trabajo y no duermo bien, ¿cómo empiezo a organizarme?"
+        "Tengo mucho estrés con el trabajo y no duermo bien, ¿cómo empiezo a organizarme?",
     ]
 
     df_results = run_rag_tests(test_queries)
 
-    os.makedirs(
-        "./mental_health_emb_tests",
-        exist_ok=True
-    )
+    os.makedirs("./mental_health_emb_tests", exist_ok=True)
 
-    df_results.to_csv(
-        "./mental_health_emb_tests/full_rag_results.csv",
-        index=False
-    )
+    df_results.to_csv("./mental_health_emb_tests/full_rag_results.csv", index=False)
 
     print(df_results)

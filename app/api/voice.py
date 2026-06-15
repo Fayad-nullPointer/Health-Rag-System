@@ -21,6 +21,7 @@ router = APIRouter()
 # DB DEPENDENCY
 # =========================================================
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -33,11 +34,12 @@ def get_db():
 # VOICE ENDPOINT
 # =========================================================
 
+
 @router.post("/voice")
 async def voice_chat(
     audio: UploadFile = File(...),
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user_id)
+    user_id: int = Depends(get_current_user_id),
 ):
     """
     Accepts an audio file upload, transcribes it with Whisper,
@@ -54,10 +56,7 @@ async def voice_chat(
     audio_bytes = await audio.read()
 
     if len(audio_bytes) == 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Empty audio file"
-        )
+        raise HTTPException(status_code=400, detail="Empty audio file")
 
     logger.info(
         f"Voice upload: {audio.filename}, "
@@ -78,10 +77,10 @@ async def voice_chat(
     _QUOTE_PAIRS = {
         '"': '"',
         "'": "'",
-        '“': '”',
-        '‘': '’',
-        '«': '»',
-        '‹': '›',
+        "“": "”",
+        "‘": "’",
+        "«": "»",
+        "‹": "›",
     }
 
     if len(cleaned_text) >= 2:
@@ -92,8 +91,7 @@ async def voice_chat(
 
     if not cleaned_text:
         raise HTTPException(
-            status_code=400,
-            detail="Could not transcribe audio. Please try again."
+            status_code=400, detail="Could not transcribe audio. Please try again."
         )
 
     # -------------------------------------------------
@@ -101,39 +99,25 @@ async def voice_chat(
     # -------------------------------------------------
     user = db.query(User).filter(User.id == user_id).first()
 
-    save_task = asyncio.to_thread(
-        save_message,
-        db, user_id, "user", cleaned_text
-    )
+    save_task = asyncio.to_thread(save_message, db, user_id, "user", cleaned_text)
 
-    history_task = asyncio.to_thread(
-        get_history,
-        db, user_id, 8
-    )
+    history_task = asyncio.to_thread(get_history, db, user_id, 8)
 
     _, history = await asyncio.gather(save_task, history_task)
 
-    history_text = "\n".join(
-        f"{msg.role}: {msg.content}"
-        for msg in reversed(history)
-    )
+    history_text = "\n".join(f"{msg.role}: {msg.content}" for msg in reversed(history))
 
     # -------------------------------------------------
     # PROCESS MESSAGE (EXISTING PIPELINE)
     # -------------------------------------------------
     result = await process_message(
-        cleaned_text,
-        history_text,
-        user.first_name if user else None
+        cleaned_text, history_text, user.first_name if user else None
     )
 
     # -------------------------------------------------
     # SAVE ASSISTANT RESPONSE
     # -------------------------------------------------
-    await asyncio.to_thread(
-        save_message,
-        db, user_id, "assistant", result["response"]
-    )
+    await asyncio.to_thread(save_message, db, user_id, "assistant", result["response"])
 
     # -------------------------------------------------
     # ADD VOICE-SPECIFIC FIELDS
@@ -142,4 +126,4 @@ async def voice_chat(
     result["voice_language"] = transcription.get("language")
     result["input_type"] = "voice"
 
-    return result
+    return {"response": result["response"]}

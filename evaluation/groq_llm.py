@@ -18,10 +18,7 @@ class GroqLLM(DeepEvalBaseLLM):
 
     # REQUIRED BY DEEPEVAL
     def load_model(self):
-        self.model = ChatGroq(
-            api_key=self.api_key,
-            model="llama-3.3-70b-versatile"
-        )
+        self.model = ChatGroq(api_key=self.api_key, model="llama-3.3-70b-versatile")
         return self.model
 
     # REQUIRED

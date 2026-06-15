@@ -9,7 +9,6 @@ from app.core.security import get_current_user_id
 from app.services.chat_service import save_message, get_history
 from app.models.user import User
 import logging
-from app.core.database import SessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +18,7 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     message: str
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -27,36 +27,20 @@ def get_db():
         db.close()
 
 
-def save_message_threadsafe(
-    user_id,
-    role,
-    content
-):
+def save_message_threadsafe(user_id, role, content):
     db = SessionLocal()
 
     try:
-        return save_message(
-            db=db,
-            user_id=user_id,
-            role=role,
-            content=content
-        )
+        return save_message(db=db, user_id=user_id, role=role, content=content)
     finally:
         db.close()
 
 
-def get_history_threadsafe(
-    user_id,
-    limit=8
-):
+def get_history_threadsafe(user_id, limit=8):
     db = SessionLocal()
 
     try:
-        return get_history(
-            db=db,
-            user_id=user_id,
-            limit=limit
-        )
+        return get_history(db=db, user_id=user_id, limit=limit)
     finally:
         db.close()
 
@@ -65,7 +49,7 @@ def get_history_threadsafe(
 async def chat(
     request: ChatRequest,
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user_id)
+    user_id: int = Depends(get_current_user_id),
 ):
 
     user = db.query(User).filter(User.id == user_id).first()
@@ -74,37 +58,21 @@ async def chat(
     # PARALLEL: save user message + fetch history
     # -------------------------------------------------
     save_task = asyncio.to_thread(
-        save_message_threadsafe,
-        user_id,
-        "user",
-        request.message
+        save_message_threadsafe, user_id, "user", request.message
     )
 
-    history_task = asyncio.to_thread(
-        get_history_threadsafe,
-        user_id,
-        4
-    )
+    history_task = asyncio.to_thread(get_history_threadsafe, user_id, 4)
 
-    _, history = await asyncio.gather(
-        save_task,
-        history_task
-    )
+    _, history = await asyncio.gather(save_task, history_task)
 
-    history_text = "\n".join(
-        f"{msg.role}: {msg.content}"
-        for msg in reversed(history)
-    )
+    history_text = "\n".join(f"{msg.role}: {msg.content}" for msg in reversed(history))
 
     logger.info("=== CHAT HISTORY SENT TO MODEL ===")
     logger.info(history_text)
     logger.info("===================================")
 
     result = await process_message(
-        request.message,
-        history_text,
-        user.first_name,
-        user.country
+        request.message, history_text, user.first_name, user.country
     )
 
     # -------------------------------------------------
@@ -115,7 +83,7 @@ async def chat(
         db=db,
         user_id=user_id,
         role="assistant",
-        content=result["response"]
+        content=result["response"],
     )
 
-    return result
+    return {"response": result["response"]}

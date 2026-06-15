@@ -6,10 +6,14 @@ rag_eval_env/
 .deepeval/
 eval_env
 *.csv
-eval_results/
 responses.txt
 data/
 config/ 
 logs/
 *.db
 language_detector.joblib
+.pytest_cache
+.ruff_cache
+.git
+*.sqlite
+eval_results/
