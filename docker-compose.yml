@@ -1,7 +1,8 @@
-version: "3.8"
-
 services:
   api:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: fayad123/mental_health_chatbot:latest
     ports:
       - "8000:8000"
@@ -9,7 +10,7 @@ services:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - QDRANT_URL=https://73aa79b6-9952-4ab7-a6ad-1fd64502ba39.eu-central-1-0.aws.cloud.qdrant.io
+      - QDRANT_URL=${QDRANT_URL}
       - QDRANT_API_KEY=${QDRANT_API_KEY}
     depends_on:
       - qdrant

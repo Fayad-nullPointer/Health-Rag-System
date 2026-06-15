@@ -26,6 +26,7 @@ COPY auth.py .
 COPY cache_layer.py .
 COPY memory.py .
 COPY pipeline.py .
+COPY axiom_logger.py .
 
 # ── Step 4: Copy necessary directories ──
 COPY classifier/ ./classifier/
