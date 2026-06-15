@@ -9,7 +9,6 @@ from deepeval.metrics import (
 
 from rag_wrapper import run_rag
 from groq_llm import GroqLLM
-from gemini_llm import GeminiLLM
 from dataset_builder import eval_queries
 
 
@@ -34,13 +33,10 @@ def run_evaluation():
             test_case = LLMTestCase(
                 input=query,
                 actual_output=result["answer"],
-                retrieval_context=result["contexts"]
+                retrieval_context=result["contexts"],
             )
 
-            row = {
-                "query": query,
-                "answer": result["answer"]
-            }
+            row = {"query": query, "answer": result["answer"]}
 
             print("\n========================")
             print("QUERY:", query)
@@ -52,27 +48,19 @@ def run_evaluation():
 
                     row[metric.__class__.__name__] = metric.score
 
-                    print(
-                        f"{metric.__class__.__name__}: "
-                        f"{metric.score:.4f}"
-                    )
+                    print(f"{metric.__class__.__name__}: " f"{metric.score:.4f}")
 
                 except Exception as e:
 
                     row[metric.__class__.__name__] = None
 
-                    print(
-                        f"{metric.__class__.__name__}: FAILED"
-                    )
+                    print(f"{metric.__class__.__name__}: FAILED")
                     print(f"Reason: {e}")
 
             results.append(row)
 
             # Save progress after every query
-            pd.DataFrame(results).to_csv(
-                "evaluation_results.csv",
-                index=False
-            )
+            pd.DataFrame(results).to_csv("evaluation_results.csv", index=False)
 
             time.sleep(120)
 
@@ -81,18 +69,17 @@ def run_evaluation():
             print(f"\n❌ Failed query: {query}")
             print(f"Reason: {e}")
 
-            results.append({
-                "query": query,
-                "answer": None,
-                "FaithfulnessMetric": None,
-                "AnswerRelevancyMetric": None,
-                "error": str(e)
-            })
-
-            pd.DataFrame(results).to_csv(
-                "evaluation_results.csv",
-                index=False
+            results.append(
+                {
+                    "query": query,
+                    "answer": None,
+                    "FaithfulnessMetric": None,
+                    "AnswerRelevancyMetric": None,
+                    "error": str(e),
+                }
             )
+
+            pd.DataFrame(results).to_csv("evaluation_results.csv", index=False)
 
             continue
 

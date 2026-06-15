@@ -9,7 +9,7 @@ class GeminiLLM(DeepEvalBaseLLM):
         self.model = ChatGoogleGenerativeAI(
             model="gemini-3.5-flash",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
-            temperature=0
+            temperature=0,
         )
 
     def load_model(self):

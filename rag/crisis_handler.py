@@ -5,9 +5,7 @@ import os
 
 load_dotenv(dotenv_path="config/.env")
 
-groq_client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
-)
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
 def build_crisis_prompt(user_message, language, hotline=None):
@@ -67,16 +65,11 @@ Respond ONLY in the same language as the user.
 # ASYNC FUNCTIONS
 # =========================================================
 
-async def handle_self_harm_async(
-    user_message,
-    language,
-    hotline=None
-):
+
+async def handle_self_harm_async(user_message, language, hotline=None):
 
     prompt = build_crisis_prompt(
-        user_message=user_message,
-        language=language,
-        hotline=hotline
+        user_message=user_message, language=language, hotline=hotline
     )
 
     result = await asyncio.to_thread(
@@ -97,14 +90,11 @@ Your highest priorities are:
 If hotline information is supplied, use it naturally and accurately.
 Never invent hotline numbers.
 Never provide self-harm methods.
-"""
+""",
                 },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
+                {"role": "user", "content": prompt},
             ],
-            max_tokens=400
+            max_tokens=400,
         )
     )
 

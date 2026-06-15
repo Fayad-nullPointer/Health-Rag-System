@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 _hf_client = None
 
+
 # Helper function
 def clean_transcription(text: str) -> str:
     """
@@ -60,9 +61,7 @@ def _get_client() -> InferenceClient:
                 "Please set it in your .env file."
             )
 
-        _hf_client = InferenceClient(
-            token=token
-        )
+        _hf_client = InferenceClient(token=token)
 
         logger.info("HuggingFace InferenceClient initialized.")
 
@@ -72,6 +71,7 @@ def _get_client() -> InferenceClient:
 # =========================================================
 # TRANSCRIPTION (SYNC)
 # =========================================================
+
 
 def _transcribe_sync(audio_bytes: bytes) -> dict:
     client = _get_client()
@@ -84,19 +84,15 @@ def _transcribe_sync(audio_bytes: bytes) -> dict:
     raw_text = result.text if result.text else ""
     transcribed_text = clean_transcription(raw_text)
 
-    logger.info(
-        f"Whisper transcription: '{transcribed_text}'"
-    )
+    logger.info(f"Whisper transcription: '{transcribed_text}'")
 
-    return {
-        "text": transcribed_text,
-        "language": None
-    }
+    return {"text": transcribed_text, "language": None}
 
 
 # =========================================================
 # ASYNC TRANSCRIPTION
 # =========================================================
+
 
 async def transcribe(audio_bytes: bytes) -> dict:
     """
@@ -111,7 +107,4 @@ async def transcribe(audio_bytes: bytes) -> dict:
             - text: transcribed text
             - language: detected language (or None)
     """
-    return await asyncio.to_thread(
-        _transcribe_sync,
-        audio_bytes
-    )
+    return await asyncio.to_thread(_transcribe_sync, audio_bytes)

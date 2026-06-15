@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 def find_locales_path(start_path: str, folder_name="locales"):
     current = Path(start_path).resolve()
 

@@ -1,7 +1,4 @@
-from fastapi import FastAPI, Request
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI
 
 from app.api.chat import router as chat_router
 from app.api.auth import router as auth_router
@@ -9,8 +6,6 @@ from app.api.voice import router as voice_router
 
 from app.core.database import Base, engine
 
-from app.models.user import User
-from app.models.chat_message import ChatMessage
 
 from contextlib import asynccontextmanager
 from rag.rag_pipeline import initialize_rag
@@ -23,6 +18,8 @@ async def lifespan(app: FastAPI):
 
     initialize_rag()
 
+    Base.metadata.create_all(bind=engine)
+
     print("RAG Ready.")
 
     yield
@@ -30,35 +27,37 @@ async def lifespan(app: FastAPI):
     print("Shutting down...")
 
 
-app = FastAPI(
-    title="MindCare AI",
-    lifespan=lifespan
-)
-
-Base.metadata.create_all(bind=engine)
-
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
-templates = Jinja2Templates(directory="app/templates")
-templates.env.cache = {}
+app = FastAPI(title="Serenity", lifespan=lifespan)
 
 
 app.include_router(chat_router)
 app.include_router(auth_router, prefix="/auth")
 app.include_router(voice_router)
 
+
+# Endpoints
+
+
 @app.get("/")
-def home(request: Request):
-    return templates.TemplateResponse(request, "index.html", {})
+def home():
+    return {"message": "MindCare AI API is running", "status": "success"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "healthy", "service": "MindCare AI"}
+
 
 @app.get("/login")
-def login_page(request: Request):
-    return templates.TemplateResponse(request, "login.html", {})
+def login_page():
+    return {"message": "Login page endpoint", "endpoint": "/auth/login"}
+
 
 @app.get("/register")
-def register_page(request: Request):
-    return templates.TemplateResponse(request, "register.html", {})
+def register_page():
+    return {"message": "Register page endpoint", "endpoint": "/auth/register"}
+
 
 @app.get("/chat")
-def chat_page(request: Request):
-    return templates.TemplateResponse(request, "chat.html", {})
+def chat_page():
+    return {"message": "Chat endpoint available", "endpoint": "/chat"}
