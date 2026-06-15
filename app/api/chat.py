@@ -1,24 +1,39 @@
-from pydantic import BaseModel
-from fastapi import APIRouter, Depends
+from pydantic import BaseModel, field_validator
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 import asyncio
+import logging
 
 from app.core.database import SessionLocal
 from app.services.chatbot_service import process_message
 from app.core.security import get_current_user_id
 from app.services.chat_service import save_message, get_history
 from app.models.user import User
-import logging
+from rag.rag_state import RAG_READY_EVENT
+
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
+# -------------------------------------------------
+# REQUEST MODEL
+# -------------------------------------------------
 class ChatRequest(BaseModel):
     message: str
 
+    @field_validator("message")
+    @classmethod
+    def validate_message(cls, v: str):
+        if not v or not v.strip():
+            raise ValueError("message cannot be empty or whitespace only")
+        return v.strip()
 
+
+# -------------------------------------------------
+# DB SESSION
+# -------------------------------------------------
 def get_db():
     db = SessionLocal()
     try:
@@ -27,9 +42,11 @@ def get_db():
         db.close()
 
 
+# -------------------------------------------------
+# THREADSAFE HELPERS
+# -------------------------------------------------
 def save_message_threadsafe(user_id, role, content):
     db = SessionLocal()
-
     try:
         return save_message(db=db, user_id=user_id, role=role, content=content)
     finally:
@@ -38,52 +55,91 @@ def save_message_threadsafe(user_id, role, content):
 
 def get_history_threadsafe(user_id, limit=8):
     db = SessionLocal()
-
     try:
         return get_history(db=db, user_id=user_id, limit=limit)
     finally:
         db.close()
 
 
+# -------------------------------------------------
+# CHAT ENDPOINT
+# -------------------------------------------------
 @router.post("/chat")
 async def chat(
     request: ChatRequest,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id),
 ):
-
-    user = db.query(User).filter(User.id == user_id).first()
-
     # -------------------------------------------------
-    # PARALLEL: save user message + fetch history
+    # HARD GATE: RAG not ready yet
     # -------------------------------------------------
-    save_task = asyncio.to_thread(
-        save_message_threadsafe, user_id, "user", request.message
-    )
+    if not RAG_READY_EVENT.is_set():
+        return {"response": "System is starting up, please try again in a few seconds."}
 
-    history_task = asyncio.to_thread(get_history_threadsafe, user_id, 4)
+    try:
+        # -------------------------------------------------
+        # GET USER
+        # -------------------------------------------------
+        user = db.query(User).filter(User.id == user_id).first()
 
-    _, history = await asyncio.gather(save_task, history_task)
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found",
+            )
 
-    history_text = "\n".join(f"{msg.role}: {msg.content}" for msg in reversed(history))
+        # -------------------------------------------------
+        # PARALLEL: save message + fetch history
+        # -------------------------------------------------
+        save_task = asyncio.to_thread(
+            save_message_threadsafe,
+            user_id,
+            "user",
+            request.message,
+        )
 
-    logger.info("=== CHAT HISTORY SENT TO MODEL ===")
-    logger.info(history_text)
-    logger.info("===================================")
+        history_task = asyncio.to_thread(
+            get_history_threadsafe,
+            user_id,
+            4,
+        )
 
-    result = await process_message(
-        request.message, history_text, user.first_name, user.country
-    )
+        _, history = await asyncio.gather(save_task, history_task)
 
-    # -------------------------------------------------
-    # ASYNC: save assistant response
-    # -------------------------------------------------
-    await asyncio.to_thread(
-        save_message,
-        db=db,
-        user_id=user_id,
-        role="assistant",
-        content=result["response"],
-    )
+        history_text = "\n".join(
+            f"{msg.role}: {msg.content}" for msg in reversed(history)
+        )
 
-    return {"response": result["response"]}
+        logger.info("=== CHAT HISTORY SENT TO MODEL ===")
+        logger.info(history_text)
+        logger.info("===================================")
+
+        # -------------------------------------------------
+        # LLM / RAG PROCESSING
+        # -------------------------------------------------
+        result = await process_message(
+            request.message,
+            history_text,
+            user.first_name,
+            user.country,
+        )
+
+        # -------------------------------------------------
+        # SAVE ASSISTANT RESPONSE (ASYNC)
+        # -------------------------------------------------
+        await asyncio.to_thread(
+            save_message,
+            db=db,
+            user_id=user_id,
+            role="assistant",
+            content=result["response"],
+        )
+
+        return {"response": result["response"]}
+
+    except Exception as e:
+        logger.exception("Chat endpoint failed")
+        return {
+            "error": "Internal server error",
+            "details": str(e),
+        }
