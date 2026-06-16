@@ -20,7 +20,7 @@ async def test_root_response_body(client):
 
     data = response.json()
 
-    assert data["message"] == "MindCare AI API is running"
+    assert data["message"] == "Serenity API is running"
     assert data["status"] == "success"
 
 

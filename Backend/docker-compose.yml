@@ -8,6 +8,8 @@ services:
       context: .
       dockerfile: Dockerfile.optimized
     container_name: health-rag-app
+    env_file:
+      - ./config/.env
     ports:
       - "8000:8000"
     environment:
@@ -17,13 +19,9 @@ services:
       - QDRANT_PORT=6333
       - LOG_LEVEL=info
     volumes:
-      # Mount config for environment variables
       - ./config:/app/config:ro
-      # Mount logs for persistence
-      - ./logs:/app/logs
-      # Mount data for embeddings and database (writable for SQLite DB)
-      - ./data:/app/data
-      # Shared cache for transformers models
+      - app_logs:/app/logs
+      - app_data:/app/data
       - huggingface_cache:/home/appuser/.cache/huggingface
     depends_on:
       qdrant:
@@ -63,12 +61,18 @@ services:
       start_period: 60s
 
 volumes:
-  # Persistent storage for Qdrant
+  app_data:
+    driver: local
+
+  app_logs:
+    driver: local
+
   qdrant_storage:
     driver: local
+
   qdrant_snapshots:
     driver: local
-  # Shared cache for transformers models - persists across container restarts
+
   huggingface_cache:
     driver: local
 
