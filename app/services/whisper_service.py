@@ -52,7 +52,6 @@ def _get_client() -> InferenceClient:
     global _hf_client
 
     if _hf_client is None:
-
         token = os.getenv("HF_TOKEN")
 
         if not token:

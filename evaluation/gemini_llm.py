@@ -4,7 +4,6 @@ import os
 
 
 class GeminiLLM(DeepEvalBaseLLM):
-
     def __init__(self):
         self.model = ChatGoogleGenerativeAI(
             model="gemini-3.5-flash",

@@ -90,12 +90,11 @@ def initialize_rag():
             # -------------------------
             # Qdrant
             # -------------------------
-            # qdrant_client = QdrantClient(
-            #     host=os.getenv("QDRANT_HOST", "qdrant"),
-            #     port=int(os.getenv("QDRANT_PORT", 6333)),
-            #     timeout=120
-            # )
-            qdrant_client = QdrantClient(host="localhost", port=6333, timeout=120)
+            qdrant_client = QdrantClient(
+                host=os.getenv("QDRANT_HOST", "qdrant"),
+                port=int(os.getenv("QDRANT_PORT", 6333)),
+                timeout=120,
+            )
 
             existing = [c.name for c in qdrant_client.get_collections().collections]
 
@@ -286,15 +285,13 @@ def run_multilingual_test(queries, top_k=5):
     logs = []
 
     for q in queries:
-
         retrieved = retrieve(q, top_k=top_k)
 
         row = {"query": q}
 
         for i, item in enumerate(retrieved):
-
-            row[f"top_{i+1}_response"] = item["response"]
-            row[f"top_{i+1}_score"] = item["hybrid_score"]
+            row[f"top_{i + 1}_response"] = item["response"]
+            row[f"top_{i + 1}_score"] = item["hybrid_score"]
 
         logs.append(row)
 
@@ -474,13 +471,13 @@ def build_prompt(
     context_text = "\n\n".join(
         [
             f"""
-Retrieved Example {i+1}
+Retrieved Example {i + 1}
 
 Situation:
-{item['context']}
+{item["context"]}
 
 Suggested Guidance:
-{item['response']}
+{item["response"]}
 """
             for i, item in enumerate(retrieved_contexts)
         ]
@@ -697,7 +694,6 @@ def run_rag_tests(queries):
     logs = []
 
     for q in queries:
-
         result = rag_pipeline(q, return_metadata=True)
 
         logs.append(

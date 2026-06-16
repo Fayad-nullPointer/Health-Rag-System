@@ -24,7 +24,6 @@ def run_evaluation():
     results = []
 
     for item in eval_queries:
-
         query = item["query"]
 
         try:
@@ -42,16 +41,14 @@ def run_evaluation():
             print("QUERY:", query)
 
             for metric in metrics:
-
                 try:
                     metric.measure(test_case)
 
                     row[metric.__class__.__name__] = metric.score
 
-                    print(f"{metric.__class__.__name__}: " f"{metric.score:.4f}")
+                    print(f"{metric.__class__.__name__}: {metric.score:.4f}")
 
                 except Exception as e:
-
                     row[metric.__class__.__name__] = None
 
                     print(f"{metric.__class__.__name__}: FAILED")
@@ -65,7 +62,6 @@ def run_evaluation():
             time.sleep(120)
 
         except Exception as e:
-
             print(f"\n❌ Failed query: {query}")
             print(f"Reason: {e}")
 

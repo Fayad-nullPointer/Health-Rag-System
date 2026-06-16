@@ -162,7 +162,6 @@ async def process_message(
     metadata = None
 
     if intent == "self_harm_intent":
-
         logger.info("Route: Crisis Handler")
 
         country = user_country or "Unknown"
@@ -186,7 +185,6 @@ async def process_message(
         )
 
     elif intent == "asking_mental_health_question":
-
         logger.info("Route: RAG Pipeline")
 
         if user_name:
@@ -233,7 +231,6 @@ Be warm and personal.
             log_debug_safe("RAG_METADATA_FULL", metadata)
 
     else:
-
         logger.info("Route: Intent Response")
 
         response = await asyncio.to_thread(engine.build_response, intent, language)

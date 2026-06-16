@@ -129,10 +129,7 @@ def format_crisis_banner(country: str) -> str:
     Returns a plain-text crisis banner string for use in chat responses.
     """
     info = get_hotline(country)
-    return (
-        f"{info['hotline_name']}: {info['hotline_number']}  |  "
-        f"{info['hotline_url']}"
-    )
+    return f"{info['hotline_name']}: {info['hotline_number']}  |  {info['hotline_url']}"
 
 
 def list_supported_countries() -> list[str]:
