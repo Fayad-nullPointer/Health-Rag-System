@@ -87,6 +87,53 @@ src/
   styles.css          # Global design tokens and keyframes
 ```
 
+---
+
+## Running with Docker
+
+You can run Serenity AI using the pre-built Docker image from Docker Hub.
+
+### 1. Pull the Docker Image
+
+```
+docker pull alihashish09/serenity-frontend:latest
+```
+
+
+### 2. Run the Container
+
+```
+docker run -d --name serenity-frontend -p 3000:3000 alihashish09/serenity-frontend:latest
+```
+
+The application will be available at:
+
+```
+http://localhost:3000
+```
+
+
+### 3. Stop the Container
+
+```
+docker stop serenity-ai
+```
+
+Remove the container:
+
+```
+docker rm serenity-ai
+```
+
+
+### 4. View Logs
+
+```
+docker logs -f serenity-ai
+```
+
+---
+
 ## Notes
 
 - The authentication and chat pages are currently **UI-only** — no backend or database is connected yet.
