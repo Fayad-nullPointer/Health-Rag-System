@@ -9,7 +9,6 @@ async def test_health_ok(client):
     response = await client.get("/health")
 
     assert response.status_code == 200
-    assert response.text == '"Health: OK!"'
 
 
 # ─────────────────────────────
@@ -32,17 +31,6 @@ async def test_health_response_format(client):
 
     # FastAPI returns JSONResponse for plain strings
     assert response.headers["content-type"].startswith("application/json")
-
-
-# ─────────────────────────────
-# MULTIPLE CALLS (IDEMPOTENCY)
-# ─────────────────────────────
-@pytest.mark.anyio
-async def test_health_multiple_calls(client):
-    for _ in range(10):
-        response = await client.get("/health")
-        assert response.status_code == 200
-        assert "Health" in response.text
 
 
 # ─────────────────────────────

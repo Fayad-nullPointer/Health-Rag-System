@@ -7,7 +7,6 @@ load_dotenv()
 
 
 class GroqLLM(DeepEvalBaseLLM):
-
     def __init__(self):
         self.api_key = os.getenv("GROQ_API_KEY")
 

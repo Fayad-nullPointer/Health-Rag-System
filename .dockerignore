@@ -1,0 +1,148 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Version control
+.hg
+.svn
+.bzr
+
+# IDEs and Editors
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.settings/
+
+# Python development
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+htmlcov/
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.venv
+venv/
+ENV/
+env/
+
+# Development & Testing
+tests/
+test_*.py
+*_test.py
+conftest.py
+pytest.ini
+.pre-commit-config.yaml
+Makefile
+setup.py
+setup.cfg
+MANIFEST.in
+tox.ini
+
+# Documentation
+docs/
+*.md
+!DOCKER_*.md
+!README.md
+!OPTIMIZATION_*.md
+*.rst
+*.txt
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+azure-pipelines.yml
+.circleci/
+
+# Jupyter & Notebooks
+notebooks/
+*.ipynb
+.ipynb_checkpoints/
+
+# Data & Cache (evaluation, old caches)
+evaluation/
+cache/
+*.joblib
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+
+# Logs (local only, not needed in image)
+logs/
+*.log
+
+# Environment files (use config/.env instead)
+.env
+.env.local
+.env.*.local
+
+# OS files
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+
+# Locales (if not needed)
+# Uncomment if you're not serving i18n:
+# locales/
+
+# Dependencies
+uv.lock
+requirements*.txt
+poetry.lock
+Pipfile.lock
+
+# Build artifacts
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Shell scripts (if not needed at runtime)
+quickstart.sh
+quickstart.ps1
+
+# Misc documentation
+ARCHITECTURE*.md
+SETUP_*.md
+DOCKER_*.md
+
+# Project-specific files to exclude
+.pre-commit-config.yaml
+.gitignore
+.editorconfig
+LICENSE

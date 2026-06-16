@@ -16,10 +16,10 @@ def build_crisis_prompt(user_message, language, hotline=None):
         hotline_section = f"""
 Crisis Support Information:
 
-Country: {hotline['country']}
-Hotline Name: {hotline['hotline_name']}
-Hotline Number: {hotline['hotline_number']}
-Website: {hotline['hotline_url']}
+Country: {hotline["country"]}
+Hotline Name: {hotline["hotline_name"]}
+Hotline Number: {hotline["hotline_number"]}
+Website: {hotline["hotline_url"]}
 """
 
     return f"""

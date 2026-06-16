@@ -9,6 +9,7 @@ from app.api.voice import router as voice_router
 
 from app.core.database import Base, engine
 from rag.rag_pipeline import initialize_rag
+from rag.rag_state import RAG_READY_EVENT
 
 
 # -----------------------------------------------------
@@ -71,18 +72,18 @@ app.include_router(voice_router)
 @app.get("/")
 def home():
     return {
-        "message": "MindCare AI API is running",
+        "message": "Serenity AI API is running",
         "status": "success",
     }
 
 
 @app.get("/health")
 def health():
-    # return {
-    #     "status": "OK",
-    #     "rag_ready": RAG_READY_EVENT.is_set()
-    # }
-    return "Health: OK!"
+    return {
+        "status": "OK",
+        "rag_ready": RAG_READY_EVENT.is_set(),
+        "service": "Serenity Mental Health",
+    }
 
 
 @app.get("/login")
