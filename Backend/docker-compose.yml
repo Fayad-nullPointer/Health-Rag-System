@@ -1,34 +1,42 @@
 services:
   # ================================================================
-  # FastAPI Application
+  # Serenity Backend API
   # ================================================================
   app:
-    image: backend-app:optimized
+    image: serenity-backend:latest
     build:
       context: .
       dockerfile: Dockerfile.optimized
-    container_name: health-rag-app
+
+    container_name: serenity-backend
+
     env_file:
       - ./config/.env
+
     ports:
       - "8000:8000"
+
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
       - LOG_LEVEL=info
+
     volumes:
       - ./config:/app/config:ro
-      - app_logs:/app/logs
-      - app_data:/app/data
-      - huggingface_cache:/home/appuser/.cache/huggingface
+      - serenity_logs:/app/logs
+      - serenity_huggingface_cache:/home/appuser/.cache/huggingface
+
     depends_on:
       qdrant:
         condition: service_started
+
     networks:
-      - health-rag-network
+      - serenity-network
+
     restart: unless-stopped
+
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
       interval: 30s
@@ -36,23 +44,31 @@ services:
       retries: 3
       start_period: 40s
 
+
   # ================================================================
   # Qdrant Vector Database
   # ================================================================
   qdrant:
     image: qdrant/qdrant:latest
-    container_name: health-rag-qdrant
+
+    container_name: serenity-qdrant
+
     ports:
-      - "6333:6333"  # REST API
-      - "6334:6334"  # gRPC
+      - "6333:6333"
+      - "6334:6334"
+
     environment:
       - QDRANT_API_KEY=${QDRANT_API_KEY:-}
+
     volumes:
-      - qdrant_storage:/qdrant/storage
-      - qdrant_snapshots:/qdrant/snapshots
+      - serenity_qdrant_storage:/qdrant/storage
+      - serenity_qdrant_snapshots:/qdrant/snapshots
+
     networks:
-      - health-rag-network
+      - serenity-network
+
     restart: unless-stopped
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
       interval: 30s
@@ -60,22 +76,24 @@ services:
       retries: 5
       start_period: 60s
 
+
 volumes:
-  app_data:
+  serenity_data:
     driver: local
 
-  app_logs:
+  serenity_logs:
     driver: local
 
-  qdrant_storage:
+  serenity_qdrant_storage:
     driver: local
 
-  qdrant_snapshots:
+  serenity_qdrant_snapshots:
     driver: local
 
-  huggingface_cache:
+  serenity_huggingface_cache:
     driver: local
+
 
 networks:
-  health-rag-network:
+  serenity-network:
     driver: bridge

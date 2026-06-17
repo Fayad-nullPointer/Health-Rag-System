@@ -115,7 +115,6 @@ Thumbs.db
 # locales/
 
 # Dependencies
-uv.lock
 requirements*.txt
 poetry.lock
 Pipfile.lock
@@ -146,3 +145,4 @@ DOCKER_*.md
 .gitignore
 .editorconfig
 LICENSE
+
