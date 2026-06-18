@@ -1459,6 +1459,7 @@ dependencies = [
     { name = "scikit-learn" },
     { name = "sentence-transformers" },
     { name = "sqlalchemy" },
+    { name = "uvicorn" },
     { name = "weaviate" },
 ]
 
@@ -1500,6 +1501,7 @@ requires-dist = [
     { name = "scikit-learn", specifier = ">=1.8.0" },
     { name = "sentence-transformers", specifier = ">=5.5.1" },
     { name = "sqlalchemy", specifier = ">=2.0.50" },
+    { name = "uvicorn", specifier = ">=0.48.0" },
     { name = "weaviate", specifier = ">=0.1.2" },
 ]
 

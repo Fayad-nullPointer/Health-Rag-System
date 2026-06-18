@@ -38,7 +38,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 def login(user: UserLogin, db: Session = Depends(get_db)):
     print("LOGIN ENDPOINT CALLED")
 
-    db_user = authenticate_user(db, user.username, user.password)
+    db_user = authenticate_user(db, user.email, user.password)
 
     if not db_user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -48,8 +48,9 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     return {
         "access_token": token,
         "token_type": "bearer",
-        "username": db_user.username,
+        "email": db_user.email,
         "full_name": db_user.full_name,
+        "first_name": db_user.first_name
     }
 
 

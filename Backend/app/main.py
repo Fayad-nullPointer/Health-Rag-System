@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from threading import Thread
 import logging
@@ -58,6 +59,30 @@ app = FastAPI(
     title="Serenity",
     lifespan=lifespan,
 )
+
+
+# Temp: Local host
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:8081",
+    ],
+    allow_origin_regex=r"https://serenity.*\.vercel\.app",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# vercel integration
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origin_regex=r"https://serenity.*\.vercel\.app",
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 
 # Routers

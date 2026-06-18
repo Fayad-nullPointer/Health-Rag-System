@@ -111,7 +111,7 @@ async def voice_chat(
     # PROCESS MESSAGE (EXISTING PIPELINE)
     # -------------------------------------------------
     result = await process_message(
-        cleaned_text, history_text, user.first_name if user else None
+        cleaned_text, history_text, user.first_name if user else None, user_country=user.country
     )
 
     # -------------------------------------------------
@@ -126,4 +126,4 @@ async def voice_chat(
     result["voice_language"] = transcription.get("language")
     result["input_type"] = "voice"
 
-    return {"response": result["response"]}
+    return result

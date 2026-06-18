@@ -19,17 +19,15 @@ def create_user(db: Session, username, email, password, country, first_name, las
     return user
 
 
-def authenticate_user(db: Session, username: str, password: str):
-    print("Login attempt:", username)
+def authenticate_user(db: Session, email: str, password: str):
+    print("Login attempt:", email)
 
-    user = db.query(User).filter(User.username == username).first()
+    user = db.query(User).filter(User.email == email).first()
 
     print("User found:", user)
 
     if not user:
         return None
-
-    print("Stored hash:", user.hashed_password)
 
     try:
         result = verify_password(password, user.hashed_password)
