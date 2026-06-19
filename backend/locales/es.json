@@ -1,0 +1,8 @@
+{
+"greeting": "Hola 👋 ¿Cómo puedo ayudarte hoy?",
+"goodbye": "Cuídate. Que tengas un gran día.",
+"gratitude": "De nada. Me alegra haber podido ayudar.",
+"asking_mental_health_question": "Estoy aquí para escucharte. ¿Te gustaría hablar más sobre lo que estás sintiendo?",
+"out_of_scope": "Estoy diseñado principalmente para apoyo en salud mental, saludos e interacciones conversacionales básicas.",
+"unsafe_query": "No puedo ayudar con esa solicitud."
+}

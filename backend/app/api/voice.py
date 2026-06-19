@@ -1,0 +1,129 @@
+import asyncio
+import logging
+
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
+from sqlalchemy.orm import Session
+
+from app.core.database import SessionLocal
+from app.core.security import get_current_user_id
+from app.services.whisper_service import transcribe
+from app.services.chatbot_service import process_message
+from app.services.chat_service import save_message, get_history
+from app.models.user import User
+
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+# =========================================================
+# DB DEPENDENCY
+# =========================================================
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# =========================================================
+# VOICE ENDPOINT
+# =========================================================
+
+
+@router.post("/voice")
+async def voice_chat(
+    audio: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
+    """
+    Accepts an audio file upload, transcribes it with Whisper,
+    then feeds the transcribed text into the chatbot pipeline.
+
+    Returns the same response format as /chat plus:
+    - transcribed_text: what Whisper heard
+    - voice_language: language detected from voice (if any)
+    """
+
+    # -------------------------------------------------
+    # READ AUDIO
+    # -------------------------------------------------
+    audio_bytes = await audio.read()
+
+    if len(audio_bytes) == 0:
+        raise HTTPException(status_code=400, detail="Empty audio file")
+
+    logger.info(
+        f"Voice upload: {audio.filename}, "
+        f"size={len(audio_bytes)} bytes, "
+        f"type={audio.content_type}"
+    )
+
+    # -------------------------------------------------
+    # TRANSCRIBE (ASYNC) + SANITIZE
+    # -------------------------------------------------
+    transcription = await transcribe(audio_bytes)
+    logger.debug("raw transcription: %r", transcription)
+
+    raw_text = transcription.get("text", "") or ""
+    cleaned_text = raw_text.strip()
+
+    # remove matching surrounding quotes/smart-quotes/guillemets
+    _QUOTE_PAIRS = {
+        '"': '"',
+        "'": "'",
+        "“": "”",
+        "‘": "’",
+        "«": "»",
+        "‹": "›",
+    }
+
+    if len(cleaned_text) >= 2:
+        first = cleaned_text[0]
+        last = cleaned_text[-1]
+        if first in _QUOTE_PAIRS and last == _QUOTE_PAIRS[first]:
+            cleaned_text = cleaned_text[1:-1].strip()
+
+    if not cleaned_text:
+        raise HTTPException(
+            status_code=400, detail="Could not transcribe audio. Please try again."
+        )
+
+    # -------------------------------------------------
+    # GET USER + DB OPS (PARALLEL)
+    # -------------------------------------------------
+    user = db.query(User).filter(User.id == user_id).first()
+
+    save_task = asyncio.to_thread(save_message, db, user_id, "user", cleaned_text)
+
+    history_task = asyncio.to_thread(get_history, db, user_id, 8)
+
+    _, history = await asyncio.gather(save_task, history_task)
+
+    history_text = "\n".join(f"{msg.role}: {msg.content}" for msg in reversed(history))
+
+    # -------------------------------------------------
+    # PROCESS MESSAGE (EXISTING PIPELINE)
+    # -------------------------------------------------
+    result = await process_message(
+        cleaned_text, history_text, user.first_name if user else None, user_country=user.country
+    )
+
+    # -------------------------------------------------
+    # SAVE ASSISTANT RESPONSE
+    # -------------------------------------------------
+    await asyncio.to_thread(save_message, db, user_id, "assistant", result["response"])
+
+    # -------------------------------------------------
+    # ADD VOICE-SPECIFIC FIELDS
+    # -------------------------------------------------
+    result["transcribed_text"] = cleaned_text
+    result["voice_language"] = transcription.get("language")
+    result["input_type"] = "voice"
+
+    return result
