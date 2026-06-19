@@ -247,7 +247,7 @@ This architecture minimizes the possibility of hallucinated crisis information w
 
 ## Frontend Demo Video
 
-<video src="./assets/demo.mp4" controls width="700"></video>
+<video src="assets/demo.mp4" controls width="700"></video>
 
 ---
 
