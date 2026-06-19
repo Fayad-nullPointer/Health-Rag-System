@@ -2,6 +2,17 @@
 
 ## A Multilingual Retrieval-Augmented Mental Health Support Platform
 
+![Landing Page](https://private-user-images.githubusercontent.com/94799871/610658937-67b45895-30b5-4d22-8bfa-9c252e4c3407.gif?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODE5MDM2NTIsIm5iZiI6MTc4MTkwMzM1MiwicGF0aCI6Ii85NDc5OTg3MS82MTA2NTg5MzctNjdiNDU4OTUtMzBiNS00ZDIyLThiZmEtOWMyNTJlNGMzNDA3LmdpZj9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjA2MTklMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwNjE5VDIxMDkxMlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWIzYTRmYjI4Zjc3NWQ3YzA3MjY2OTE3MzU4YWQ3ODkwZDY1YjY2ZjU5NzFiMjRiOWRiMTRiYzQ3MTlmOGFhNmUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRmdpZiJ9.WY3ayTAsmErDf_8CKHQotWpGQeqTlLEvXNFB-pjUwm0)
+
+<p align="center">
+  <a href="https://serenity-mental-health-frontend-s9rn-rasld8hae.vercel.app/">Live Application</a> •
+  <a href="#application-preview">Preview</a> •
+  <a href="#architecture">Architecture</a> •
+  <a href="#intelligent-processing-pipeline">AI Pipeline</a> •
+  <a href="#running-locally">Installation</a>
+</p>
+
+
 Serenity is an AI-assisted mental health support platform that integrates a full-stack web application with a safety-oriented NLP pipeline. The system combines conversational AI, multilingual processing, emotion recognition, hybrid retrieval, crisis-aware routing, and a responsive user interface.
 
 The platform is designed around three principles:
