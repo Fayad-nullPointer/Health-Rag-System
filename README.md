@@ -241,9 +241,9 @@ This architecture minimizes the possibility of hallucinated crisis information w
 
 ### Crisis Handling Workflow
 
-
 ![Crisis Handling](assets/crisis-detection-log.png)
 ![Crisis Handling](assets/rag-3.png)
+
 
 ## Frontend Demo Video
 
