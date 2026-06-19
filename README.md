@@ -155,7 +155,7 @@ Voice messages are transcribed before entering the standard NLP processing pipel
 ### Conversation Management Interface
 
 
-![Conversation Management](assets\chat-interface.png)
+![Conversation Management](assets/chat-interface.png)
 
 
 ### Current Known Issue
@@ -188,7 +188,7 @@ This enables:
 ### Language Classification Examples
 
 
-![Language Classification](assets\multi-language.png)
+![Language Classification](assets/multi-language.png)
 
 
 ---
@@ -210,7 +210,7 @@ Emotion signals are incorporated into downstream processing to improve conversat
 
 ### Emotion Classification Examples
 
-![Emotion Classification](assets\emotion-detection.png)
+![Emotion Classification](assets/emotion-detection.png)
 
 ---
 
